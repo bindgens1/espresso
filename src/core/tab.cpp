@@ -186,6 +186,7 @@ int tabulated_bonded_set_params(int bond_type, TabulatedBondedInteraction tab_ty
 
   /* calculate dependent parameters */
   bonded_ia_params[bond_type].p.tab.invstepsize = (double)(size-1)/(bonded_ia_params[bond_type].p.tab.maxval-bonded_ia_params[bond_type].p.tab.minval);
+  double step_size =1./bonded_ia_params[bond_type].p.tab.invstepsize; 
 
   /* allocate force and energy tables */
   bonded_ia_params[bond_type].p.tab.f = (double*)Utils::malloc(size*sizeof(double));
@@ -196,6 +197,12 @@ int tabulated_bonded_set_params(int bond_type, TabulatedBondedInteraction tab_ty
     if (fscanf(fp,"%lf %lf %lf", &dummr,
 	       &bonded_ia_params[bond_type].p.tab.f[i],
 	       &bonded_ia_params[bond_type].p.tab.e[i]) != 3) return 5;
+    // We re-multiply the tabulated data by distance, because this is needed
+    // for a correct interpolation. At the same time, we keep backwards 
+    // compatibility for the file format.
+    // this applies only to forces, not to energies
+    double r=bonded_ia_params[bond_type].p.tab.minval +i*step_size;
+    bonded_ia_params[bond_type].p.tab.f[i] *=r;
   }
   fclose(fp);
 

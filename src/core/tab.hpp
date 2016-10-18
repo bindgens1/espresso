@@ -188,7 +188,7 @@ inline double bonded_tab_force_lookup(double val, Bonded_ia_parameters *iaparams
 
   dind = dind - ind;
   /* linear interpolation between data points */
-  return  iaparams->p.tab.f[ind]*(1.0-dind) + iaparams->p.tab.f[ind+1]*dind;
+  return  (iaparams->p.tab.f[ind]*(1.0-dind) + iaparams->p.tab.f[ind+1]*dind) / val;
 }
 
 /** Energy lookup in a energy table for bonded interactions (see \ref
@@ -222,6 +222,10 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2, Bonded_ia_parameters 
 {
   int i;
   double fac, dist = sqrt(sqrlen(dx));
+  // If the distance is 0, do not add a force.
+  // This is dictaed by the fact that in the table, f(r)/r is stored, hence
+  // storing valid forces for r=0 is impossible.
+  if (dist==0.) return 0;
 
   if(dist > iaparams->p.tab.maxval)
   {
@@ -317,6 +321,12 @@ inline int calc_tab_angle_force(Particle *p_mid, Particle *p_left,
   if(invsinphi < TINY_SIN_VALUE) invsinphi = TINY_SIN_VALUE;
   invsinphi = 1.0/invsinphi;
   /* look up force factor */
+  
+  // If the angle is 0, do not add any force. This is dictated by the fact
+  // that f(phi)/phi is stored in the table, and hence no valid forces
+  // can be stored for phi=0.
+  if (phi==0.) return 0;
+
   fac = bonded_tab_force_lookup(phi, iaparams);
   /* apply bend forces */
   for(j=0;j<3;j++) {
@@ -370,6 +380,10 @@ inline void calc_angle_3body_tabulated_forces(Particle *p_mid, Particle *p_left,
   phi = acos(cos_phi);
 #endif
 
+  // If the angle is 0, do not add any force. This is dictated by the fact
+  // that f(phi)/phi is stored in the table, and hence no valid forces
+  // can be stored for phi=0.
+  if (phi==0.) return;
   dU = bonded_tab_force_lookup(phi, iaparams);
 
   // potential dependent term (dU/dphi * 1 / sin(phi))
