@@ -22,7 +22,6 @@ import unittest as ut
 import espressomd
 import numpy as np
 from espressomd.interactions import Tabulated,HarmonicBond
-from espressomd.integrate import integrate
 
 
 class BondBreakage(ut.TestCase):
@@ -41,25 +40,26 @@ class BondBreakage(ut.TestCase):
 
 
     def run_for(self,bond_class,breakable_params):
+      self.S.part.clear()
       self.S.box_l=(10,10,10)
       self.S.time_step=0.01
       self.S.bonded_inter.bond_breakage.clear_handlers()
       self.S.bonded_inter.bond_breakage.add_handler("print_queue_entry")
       self.S.bonded_inter.bond_breakage.add_handler("break_simple_pair_bond")
 
-      bond=bond_class(breakable_params)
+      bond=bond_class(**breakable_params)
       self.S.bonded_inter.add(bond)
       harm=HarmonicBond(k=1,r_0=1)
       self.S.bonded_inter.add(harm)
       self.S.part.add(pos=(0,0,0),id=0)
-      self.S.part.add(pos=(1,0,0),id=1,bonds=((tab,0),))
-      integrate(0)
+      self.S.part.add(pos=(1,0,0),id=1,bonds=((bond,0),))
+      self.S.integrator.run(0)
       res=self.S.part[1].bonds
-      expected=((tab,0),)
+      expected=((bond,0),)
       self.assertTrue(res==expected,"Bond should not have been broken.")
       self.S.part[1].pos=(1.5,0,0)
       print self.S.part[0].pos_folded,self.S.part[1].pos_folded
-      integrate(10,recalc_forces=True)
+      self.S.integrator.run(10,recalc_forces=True)
       print self.S.bonded_inter.bond_breakage.active_handlers(),self.S.part[1].bonds
       self.assertTrue(self.S.part[1].bonds==(),"Bond should have been broken.")
 
@@ -67,7 +67,7 @@ class BondBreakage(ut.TestCase):
       p=bond._params
       p.update(breakable=False)
       bond.params=p
-      self.assertRaises(Exception,integrate(1),"Extending tabulated bond with breakge turned off shoudl raise runtime error")
+      self.assertRaises(Exception,self.S.integrator.run(1),"Extending bond with breakge turned off shoudl raise runtime error")
 
       # Test breaking of bind_at_point_of_collision
       self.S.bonded_inter.bond_breakage.clear_handlers()
@@ -80,7 +80,7 @@ class BondBreakage(ut.TestCase):
       
       # Virtual sites
       self.S.part.add(id=2,pos=self.S.part[0].pos,virtual=1)
-      self.S.part.add(id=3,pos=self.S.part[1].pos,virtual=1,bonds=((tab,2),))
+      self.S.part.add(id=3,pos=self.S.part[1].pos,virtual=1,bonds=((bond,2),))
       self.S.part[2].vs_auto_relate_to(0)
       self.S.part[3].vs_auto_relate_to(1)
 
@@ -90,20 +90,20 @@ class BondBreakage(ut.TestCase):
       p=bond._params
       p.update(breakable=True)
       bond.params=p
-      integrate(0)
+      self.S.integrator.run(0)
       # Check bonds
       print self.S.part[0].bonds
       expected=((harm,4),)
       print expected
       self.assertTrue(self.S.part[0].bonds==expected)
       self.assertTrue(self.S.part[1].bonds==())
-      self.assertTrue(self.S.part[2].bonds==())
-      self.assertTrue(self.S.part[3].bonds==())
+      self.assertTrue(self.S.part.exists(2)==False)
+      self.assertTrue(self.S.part.exists(3)==False)
       self.assertTrue(self.S.part[4].bonds==())
 
     def test_b_tab(self):
+      self.run_for(HarmonicBond,{'k':1,"r_0":0,"r_cut":1.3, "breakable":True})
       self.run_for(Tabulated, {"type":"distance","filename":"lj1.tab","breakable":True})
-      self.run_for(HarmonicBond,{"k":1,"r_0":0,"r_cut":1.3, "breakable":True})
 
 
 

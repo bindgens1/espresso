@@ -70,6 +70,7 @@ inline int calc_harmonic_pair_force(Particle *p1, Particle *p2, Bonded_ia_parame
     {
      // Queue for graceful bond breakage
      bond_breakage().queue_breakage(iaparams->p.harmonic.bond_id, p1->p.identity,p2->p.identity);
+     return 0;
     }
   }
 
@@ -109,10 +110,9 @@ inline int harmonic_pair_energy(Particle *p1, Particle *p2, Bonded_ia_parameters
   double dist = sqrt(dist2);
 
   if ((iaparams->p.harmonic.r_cut > 0.0) && 
-      (dist > iaparams->p.harmonic.r_cut) &&
-      (! iaparams->p.harmonic.breakable)
-      ) 
-    return 1;
+      (dist > iaparams->p.harmonic.r_cut)) 
+      if (! iaparams->p.harmonic.breakable) return 1;
+      else return 0;
 
   *_energy = 0.5*iaparams->p.harmonic.k*SQR(dist - iaparams->p.harmonic.r);
   return 0;
