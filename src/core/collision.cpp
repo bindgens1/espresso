@@ -336,7 +336,7 @@ int glue_to_surface_calc_vs_pos(const Particle* const p1, const Particle* const 
    return bind_vs_to_pid;
 }
 
-void bind_at_point_of_collision_calc_vs_pos(const Particle* const p1, const Particle* const p2, double pos1[3],double pos2[3]) {
+void bind_at_point_of_collision_calc_vs_pos(const Particle* const p1, const Particle* const p2, double pos1[3], double pos2[3]) {
     double vec21[3];
     get_mi_vector(vec21,p1->r.p,p2->r.p);
     for (int i=0;i<3;i++) {
