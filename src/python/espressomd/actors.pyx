@@ -3,7 +3,7 @@ include "myconfig.pxi"
 from .highlander import ThereCanOnlyBeOne
 
 
-cdef class Actor:
+cdef class Actor(object):
 
     # Keys in active_list have to match the method name.
     active_list = dict(ElectrostaticInteraction=False,
@@ -39,7 +39,6 @@ cdef class Actor:
                 self._params[k] = kwargs[k]
             else:
                 raise KeyError("%s is not a vaild key" % k)
-        #self._set_params_in_es_core()
 
     def _activate(self):
         inter = self._get_interaction_type()
@@ -61,8 +60,6 @@ cdef class Actor:
 
     def is_valid(self):
         """Check, if the data stored in the instance still matches what is in Espresso"""
-        # check, if the parameters saved in the class still match those
-        # saved in Espresso
         temp_params = self._get_params_from_es_core()
         if self._params != temp_params:
             return False
@@ -79,7 +76,7 @@ cdef class Actor:
         return self._params
 
     def set_params(self, **p):
-        """Update parameters. Only given """
+        """Update the given parameters."""
         # Check, if any key was passed, which is not known
         for k in p.keys():
             if k not in self.valid_keys():
@@ -119,39 +116,47 @@ cdef class Actor:
         return self._isactive
 
     def valid_keys(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the valid_keys() method." % self._get_interaction_type())
 
     def required_keys(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the required_keys() method." % self._get_interaction_type())
 
     def validate_params(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the validate_params() method." % self._get_interaction_type())
 
     def _get_params_from_es_core(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the _get_params_from_es_core() method." % self._get_interaction_type())
 
     def _set_params_in_es_core(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the _set_params_in_es_core() method." % self._get_interaction_type())
 
     def default_params(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the default_params() method." % self._get_interaction_type())
 
     def _activate_method(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the _activate_method() method." % self._get_interaction_type())
 
     def _deactivate_method(self):
+        """Virtual method."""
         raise Exception(
             "Subclasses of %s must define the _deactivate_method() method." % self._get_interaction_type())
 
 
-class Actors:
+class Actors(object):
 
     active_actors = []
 
@@ -159,12 +164,39 @@ class Actors:
         self.system = _system
 
     def add(self, actor):
+        """
+        Parameters
+        ----------
+        actor : instance of :class:`espressomd.actors.Actor`
+
+        """
         if not actor in Actors.active_actors:
             actor.system = self.system
             Actors.active_actors.append(actor)
             actor._activate()
         else:
             raise ThereCanOnlyBeOne(actor)
+            
+    def remove(self, actor):
+        """
+        Parameters
+        ----------
+        actor : instance of :class:`espressomd.actors.Actor`
+
+        """
+        self._remove_actor(actor)
+
+    def _remove_actor(self, actor):
+        """
+        Parameters
+        ----------
+        actor : instance of :class:`espressomd.actors.Actor`
+
+        """
+        if not actor in self.active_actors:
+            raise Exception("Actor is not active")
+        actor._deactivate()
+        self.active_actors.remove(actor)
 
     def __str__(self):
         print("Active Actors:")
@@ -184,7 +216,4 @@ class Actors:
 
     def __delitem__(self, idx):
         actor = self[idx]
-        if not actor in self.active_actors:
-            raise Exception("Actor is not active")
-        actor._deactivate()
-        self.active_actors.remove(actor)
+        self._remove_actor(actor)

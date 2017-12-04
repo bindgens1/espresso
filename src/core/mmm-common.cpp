@@ -31,7 +31,7 @@
 #include "mmm-common.hpp"
 #include "utils.hpp"
 
-Polynom *modPsi = NULL;
+Polynom *modPsi = nullptr;
 int      n_modPsi = 0;
 
 static void preparePolygammaEven(int n, double binom, Polynom *series)
@@ -114,7 +114,7 @@ void create_mod_psi_up_to(int new_n)
   if (new_n > n_modPsi) {
     int old = n_modPsi;
     n_modPsi = new_n;
-    modPsi = (Polynom*)Utils::realloc(modPsi, 2*n_modPsi*sizeof(Polynom));
+    modPsi = Utils::realloc(modPsi, 2*n_modPsi*sizeof(Polynom));
 
     binom = 1.0;
     for (n = 0; n < old; n++)

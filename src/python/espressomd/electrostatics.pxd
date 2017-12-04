@@ -20,7 +20,7 @@
 
 from __future__ import print_function, absolute_import
 include "myconfig.pxi"
-from espressomd._system cimport *
+from espressomd.system cimport *
 cimport numpy as np
 from espressomd.utils cimport *
 
@@ -103,13 +103,12 @@ IF ELECTROSTATICS:
 
         IF CUDA:
             cdef extern from "p3m_gpu.hpp":
-                void p3m_gpu_init(int cao, int * mesh, double alpha, double * box)
+                void p3m_gpu_init(int cao, int * mesh, double alpha)
 
             cdef inline python_p3m_gpu_init(params):
                 cdef int cao
                 cdef int mesh[3]
                 cdef double alpha
-                cdef double box[3]
                 cao = params["cao"]
                 # Mesh can be specified as single int, but here, an array is needed
                 if not hasattr(params["mesh"],"__getitem__"):
@@ -118,8 +117,7 @@ IF ELECTROSTATICS:
                 else:
                     mesh = params["mesh"]
                 alpha = params["alpha"]
-                box = params["box"]
-                p3m_gpu_init(cao, mesh, alpha, box)
+                p3m_gpu_init(cao, mesh, alpha)
 
         # Convert C arguments into numpy array
         cdef inline python_p3m_set_mesh_offset(mesh_off):
@@ -133,7 +131,8 @@ IF ELECTROSTATICS:
             cdef char * log = NULL
             cdef int response
             response = p3m_adaptive_tune(& log)
-            print(log)
+            handle_errors("Error in p3m_adaptive_tune")
+            if log.strip(): print(log)
             return response
 
         cdef inline python_p3m_set_params(p_r_cut, p_mesh, p_cao, p_alpha, p_accuracy):
@@ -269,7 +268,7 @@ IF ELECTROSTATICS:
         cdef int resp
         MMM1D_init();
         if MMM1D_sanity_checks()==1:
-            raise ValueError("MMM1D Sanity check failed: wrong periodicity or wrong cellsystem, PRTFM")
+            handle_errors("MMM1D Sanity check failed: wrong periodicity or wrong cellsystem, PRTFM")
         resp=mmm1d_tune(&log)
         if resp:
             print(log)
@@ -307,7 +306,8 @@ IF ELECTROSTATICS and MMM1D_GPU:
             Mmm1dgpuForce(SystemInterface &s, mmm1dgpu_real coulomb_prefactor, mmm1dgpu_real maxPWerror);
             void setup(SystemInterface &s);
             void tune(SystemInterface &s, mmm1dgpu_real _maxPWerror, mmm1dgpu_real _far_switch_radius, int _bessel_cutoff);
-            void set_params(mmm1dgpu_real _boxz, mmm1dgpu_real _coulomb_prefactor, mmm1dgpu_real _maxPWerror, mmm1dgpu_real _far_switch_radius, int _bessel_cutoff, bool manual = False);
+            void set_params(mmm1dgpu_real _boxz, mmm1dgpu_real _coulomb_prefactor, mmm1dgpu_real _maxPWerror, mmm1dgpu_real _far_switch_radius, int _bessel_cutoff, bool manual);
+            void set_params(mmm1dgpu_real _boxz, mmm1dgpu_real _coulomb_prefactor, mmm1dgpu_real _maxPWerror, mmm1dgpu_real _far_switch_radius, int _bessel_cutoff);
 
             unsigned int numThreads;
             unsigned int numBlocks(SystemInterface &s);

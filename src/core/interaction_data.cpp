@@ -20,7 +20,7 @@
 */
 /** \file interaction_data.cpp
     Implementation of interaction_data.hpp
- */
+ */ 
 #include <cstring>
 #include <cstdlib>
 #include "utils.hpp"
@@ -57,8 +57,6 @@
 #include "cos2.hpp"
 #include "gb.hpp"
 #include "cells.hpp"
-#include "comforce.hpp"
-#include "comfixed.hpp"
 #include "morse.hpp"
 #include "dpd.hpp"
 #include "tunable_slip.hpp"
@@ -67,13 +65,16 @@
 #include "initialize.hpp"
 #include "interaction_data.hpp"
 #include "actor/DipolarDirectSum.hpp"
+#include "p3m-dipolar.hpp"
+#include "thermostat.hpp"
+#include "scafacos.hpp"
 
 /****************************************
  * variables
  *****************************************/
 int n_particle_types = 0;
 int n_interaction_types = 0;
-IA_parameters *ia_params = NULL;
+IA_parameters *ia_params = nullptr;
 
 #if defined(ELECTROSTATICS) || defined(DIPOLES)
 Coulomb_parameters coulomb = { 
@@ -97,7 +98,7 @@ double field_applied;
 #endif
 
 int n_bonded_ia = 0;
-Bonded_ia_parameters *bonded_ia_params = NULL;
+Bonded_ia_parameters *bonded_ia_params = nullptr;
 
 double min_global_cut = 0.0;
 
@@ -153,7 +154,6 @@ void initialize_ia_params(IA_parameters *params) {
     params->LJ_sig =
     params->LJ_shift =
     params->LJ_offset =
-    params->LJ_capradius =
     params->LJ_min = 0.0;
   params->LJ_cut = INACTIVE_CUTOFF;
 #endif
@@ -163,7 +163,6 @@ void initialize_ia_params(IA_parameters *params) {
     params->LJGEN_sig =
     params->LJGEN_shift =
     params->LJGEN_offset =
-    params->LJGEN_capradius =
     params->LJGEN_a1 =
     params->LJGEN_a2 = 
     params->LJGEN_b1 =
@@ -183,7 +182,6 @@ void initialize_ia_params(IA_parameters *params) {
     params->LJANGLE_bonded1neg = 
     params->LJANGLE_bonded2pos = 
     params->LJANGLE_bonded2neg = 
-    params->LJANGLE_capradius =
     params->LJANGLE_z0 =
     params->LJANGLE_kappa =
     params->LJANGLE_epsprime = 0.0;
@@ -226,7 +224,6 @@ void initialize_ia_params(IA_parameters *params) {
     params->MORSE_alpha =
     params->MORSE_rmin =
     params->MORSE_rest = 
-    params->MORSE_capradius = 0;
   params->MORSE_cut = INACTIVE_CUTOFF;
 #endif
 
@@ -237,7 +234,6 @@ void initialize_ia_params(IA_parameters *params) {
     params->BUCK_D =
     params->BUCK_discont =
     params->BUCK_shift =
-    params->BUCK_capradius =
     params->BUCK_F1 =
     params->BUCK_F2 = 0.0;
   params->BUCK_cut = INACTIVE_CUTOFF;
@@ -288,7 +284,6 @@ void initialize_ia_params(IA_parameters *params) {
     params->LJCOS2_offset =
     params->LJCOS2_w =
     params->LJCOS2_rchange = 
-    params->LJCOS2_capradius = 0.0;
   params->LJCOS2_cut = INACTIVE_CUTOFF;
 #endif
 
@@ -320,7 +315,7 @@ void initialize_ia_params(IA_parameters *params) {
   params->TAB_maxval = INACTIVE_CUTOFF;
 #endif
 
-#ifdef INTER_DPD
+#ifdef DPD
   params->dpd_gamma = 0.0;
   params->dpd_wf = 0;
   params->dpd_pref1 = 0.0;
@@ -343,26 +338,8 @@ void initialize_ia_params(IA_parameters *params) {
   params->TUNABLE_SLIP_r_cut = INACTIVE_CUTOFF;
 #endif
 
-  /* things that are not strictly speaking short-ranged interactions,
-     and do not have a cutoff */
-#ifdef COMFORCE
-  params->COMFORCE_flag = 0;
-  params->COMFORCE_dir = 0;
-  params->COMFORCE_force = 0.;
-  params->COMFORCE_fratio = 0.;
-#endif
-
-#ifdef COMFIXED
-  params->COMFIXED_flag = 0;
-#endif
-
 #ifdef INTER_RF
   params->rf_on = 0;
-#endif
-
-#ifdef MOL_CUT
-  params->mol_cut_type = 0;
-  params->mol_cut_cutoff = 0.0;
 #endif
 
 #ifdef CATALYTIC_REACTIONS
@@ -398,10 +375,6 @@ static void recalc_maximal_cutoff_bonded()
     case BONDED_IA_HARMONIC:
       if((bonded_ia_params[i].p.harmonic.r_cut>0)&&(max_cut_bonded < bonded_ia_params[i].p.harmonic.r_cut))
 	max_cut_bonded = bonded_ia_params[i].p.harmonic.r_cut;
-      break;
-    case BONDED_IA_SUBT_LJ:
-      if(max_cut_bonded < bonded_ia_params[i].p.subt_lj.r)
-	max_cut_bonded = bonded_ia_params[i].p.subt_lj.r;
       break;
     case BONDED_IA_RIGID_BOND:
       if(max_cut_bonded < sqrt(bonded_ia_params[i].p.rigid_bond.d2))
@@ -537,23 +510,6 @@ static void recalc_global_maximal_nonbonded_and_long_range_cutoff()
    for the relative virtual sites algorithm. */
    max_cut_global = min_global_cut;
 
-  
-
-
-#ifdef DPD
-  if (dpd_r_cut != 0) {
-    if(max_cut_global < dpd_r_cut)
-      max_cut_global = dpd_r_cut;
-  }
-#endif
-  
-#ifdef TRANS_DPD
-  if (dpd_tr_cut != 0) {
-    if(max_cut_global < dpd_tr_cut)
-      max_cut_global = dpd_tr_cut;
-  }
-#endif
-
 // global cutoff without dipolar and coulomb methods is needed
 // for more selective additoin of particle pairs to verlet lists
 max_cut_global_without_coulomb_and_dipolar=max_cut_global;
@@ -592,13 +548,9 @@ static void recalc_maximal_cutoff_nonbonded()
 	max_cut_current = (data->LJ_cut+data->LJ_offset);
 #endif
 
-#ifdef INTER_DPD
-      {
-	double max_cut_tmp = (data->dpd_r_cut > data->dpd_tr_cut) ?
-	  data->dpd_r_cut : data->dpd_tr_cut;
-	if (max_cut_current <  max_cut_tmp)
-	  max_cut_current = max_cut_tmp;
-      }
+#ifdef DPD
+      max_cut_current = std::max(max_cut_current,
+                                 std::max(data->dpd_r_cut, data->dpd_tr_cut));
 #endif
 
 #ifdef LENNARD_JONES_GENERIC
@@ -658,7 +610,7 @@ static void recalc_maximal_cutoff_nonbonded()
 
 #ifdef HAT
       if (max_cut_current < data->HAT_r)
-	max_cut_current = data->HAT_r;
+        max_cut_current = data->HAT_r;
 #endif
 
 #ifdef LJCOS
@@ -703,14 +655,6 @@ static void recalc_maximal_cutoff_nonbonded()
 #ifdef CATALYTIC_REACTIONS
       if (max_cut_current < data->REACTION_range)
 	max_cut_current = data->REACTION_range;
-#endif
-
-#ifdef MOL_CUT
-      if (data->mol_cut_type != 0) {
-	if (max_cut_current < data->mol_cut_cutoff)
-	  max_cut_current = data->mol_cut_cutoff;
-	max_cut_current += 2.0* max_cut_bonded;
-      }
 #endif
 
       IA_parameters *data_sym = get_ia_param(j, i);
@@ -870,8 +814,8 @@ void make_bond_type_exist(int type)
 	 bonded_ia_params[type].p.tab.npoints > 0 ) {
       free(bonded_ia_params[type].p.tab.f);
       free(bonded_ia_params[type].p.tab.e);
-      bonded_ia_params[type].p.tab.f = NULL;
-      bonded_ia_params[type].p.tab.e = NULL;
+      bonded_ia_params[type].p.tab.f = nullptr;
+      bonded_ia_params[type].p.tab.e = nullptr;
     }
 #endif 
 #ifdef OVERLAPPED
@@ -880,9 +824,9 @@ void make_bond_type_exist(int type)
       free(bonded_ia_params[type].p.overlap.para_a);
       free(bonded_ia_params[type].p.overlap.para_b);
       free(bonded_ia_params[type].p.overlap.para_c);
-      bonded_ia_params[type].p.overlap.para_a = NULL;
-      bonded_ia_params[type].p.overlap.para_b = NULL;
-      bonded_ia_params[type].p.overlap.para_c = NULL;
+      bonded_ia_params[type].p.overlap.para_a = nullptr;
+      bonded_ia_params[type].p.overlap.para_b = nullptr;
+      bonded_ia_params[type].p.overlap.para_c = nullptr;
     }
 #endif
     return;
@@ -1050,7 +994,6 @@ void recalc_coulomb_prefactor()
 #endif
 }
 
-#ifdef BOND_VIRTUAL
 int virtual_set_params(int bond_type)
 {
   if(bond_type < 0)
@@ -1066,5 +1009,3 @@ int virtual_set_params(int bond_type)
 
   return ES_OK;
 }
-
-#endif

@@ -17,13 +17,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function, absolute_import
-from espressomd._system cimport *
+from espressomd.system cimport *
 # Here we create something to handle particles
 cimport numpy as np
 from espressomd.utils cimport *
 from libcpp cimport bool
+from libcpp.memory cimport unique_ptr
 
 include "myconfig.pxi"
+
+cdef extern from "Vector.hpp":
+    cppclass Vector3d:
+        double & operator[](int i)
 
 # Import particle data structures and setter functions from particle_data.hpp
 
@@ -35,11 +40,11 @@ cdef extern from "particle_data.hpp":
     # Therefore, only member variables are imported here, which are always compiled into Espresso.
     # For all other properties, getter-funcionts have to be used on the c
     # level.
-
     ctypedef struct particle_properties "ParticleProperties":
         int    identity
         int    mol_id
         int    type
+        double mass
 
     ctypedef struct particle_position "ParticlePosition":
         double p[3]
@@ -60,6 +65,7 @@ cdef extern from "particle_data.hpp":
         particle_force f
         particle_local l
         int_list bl
+        int_list exclusions() except +
 
     IF ENGINE:
         IF LB or LB_GPU:
@@ -79,8 +85,7 @@ cdef extern from "particle_data.hpp":
                 double v_swim
 
     # Setter/getter/modifier functions functions
-
-    int get_particle_data(int part, particle * data)
+    unique_ptr[particle] get_particle_data(int part)
 
     int place_particle(int part, double p[3])
 
@@ -88,11 +93,9 @@ cdef extern from "particle_data.hpp":
 
     int set_particle_f(int part, double F[3])
 
-    int set_particle_mass(int part, double mass)
-
     int set_particle_solvation(int part, double * solvation)
 
-    IF ROTATION_PER_PARTICLE == 1:
+    IF ROTATION == 1:
         int set_particle_rotation(int part, int rot)
 
     IF MULTI_TIMESTEP:
@@ -101,7 +104,6 @@ cdef extern from "particle_data.hpp":
 
     IF MASS:
         int set_particle_mass(int part, double mass)
-        void pointer_to_mass(particle * p, double * & res)
 
     IF SHANCHEN:
         int set_particle_solvation(int part, double * solvation)
@@ -111,7 +113,7 @@ cdef extern from "particle_data.hpp":
         int set_particle_rotational_inertia(int part, double rinertia[3])
         void pointer_to_rotational_inertia(particle * p, double * & res)
 
-    IF ROTATION_PER_PARTICLE:
+    IF ROTATION:
         int set_particle_rotation(int part, int rot)
         void pointer_to_rotation(particle * p, short int * & res)
 
@@ -135,9 +137,6 @@ cdef extern from "particle_data.hpp":
         void pointer_to_omega_body(particle * p, double * & res)
         void pointer_to_torque_lab(particle * p, double * & res)
 
-    IF MASS == 1:
-        void pointer_to_mass(particle * p, double * & res)
-
     IF DIPOLES:
         int set_particle_dip(int part, double dip[3])
         void pointer_to_dip(particle * P, double * & res)
@@ -153,14 +152,19 @@ cdef extern from "particle_data.hpp":
         int set_particle_temperature(int part, double T)
         void pointer_to_temperature(particle * p, double * & res)
 
-        int set_particle_gamma(int part, double gamma)
+        IF PARTICLE_ANISOTROPY:
+            int set_particle_gamma(int part, Vector3d gamma)
+        ELSE:
+            int set_particle_gamma(int part, double gamma)
+
         void pointer_to_gamma(particle * p, double * & res)
+
         IF ROTATION:
-            IF ROTATIONAL_INERTIA:
-                int set_particle_gamma_rot(int part, double gamma[3])
+            IF PARTICLE_ANISOTROPY:
+                int set_particle_gamma_rot(int part, Vector3d gamma_rot)
             ELSE:
                 int set_particle_gamma_rot(int part, double gamma)
-    
+
             void pointer_to_gamma_rot(particle * p, double * & res)
 
     IF VIRTUAL_SITES_RELATIVE:
@@ -184,8 +188,6 @@ cdef extern from "particle_data.hpp":
 
     IF EXCLUSIONS:
         int change_exclusion(int part, int part2, int _delete)
-        void pointer_to_exclusions(particle * p, int * & res1, int * & res2)
-
         void remove_all_exclusions()
 
     IF ENGINE:
@@ -200,6 +202,7 @@ cdef extern from "particle_data.hpp":
 
     bool particle_exists(int part)
 
+
 cdef extern from "virtual_sites_relative.hpp":
     IF VIRTUAL_SITES_RELATIVE == 1:
         int vs_relate_to(int part_num, int relate_to)
@@ -208,6 +211,7 @@ cdef extern from "virtual_sites_relative.hpp":
 cdef extern from "rotation.hpp":
     void convert_omega_body_to_space(particle * p, double * omega)
     void convert_torques_body_to_space(particle * p, double * torque)
+    Vector3d convert_vector_body_to_space(const particle& p,const Vector3d& v)
 
 # The bonded_ia_params stuff has to be included here, because the setter/getter
 # of the particles' bond property needs to now about the correct number of
@@ -220,18 +224,16 @@ cdef extern from "interaction_data.hpp":
     cdef int n_bonded_ia
 
 cdef class ParticleHandle(object):
-
     cdef public int id
     cdef bint valid
-    cdef particle particle_data
+    cdef unique_ptr[particle] particle_data
     cdef int update_particle_data(self) except -1
 
-
-cdef class ParticleSlice:
-
-    cdef particle particle_data
-    cdef int update_particle_data(self,id) except -1
+cdef class _ParticleSliceImpl:
+    cdef unique_ptr[particle] particle_data
+    cdef int update_particle_data(self, id) except -1
     cdef public id_selection
 
 cdef extern from "grid.hpp":
-    cdef inline void fold_position(double*, int*)
+    cdef void fold_position(double *, int*)
+    void unfold_position(double pos[3], int image_box[3]) 

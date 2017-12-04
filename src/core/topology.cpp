@@ -35,7 +35,7 @@
 #include "molforces.hpp"
 
 int     n_molecules = -1;
-Molecule *topology = NULL;
+Molecule *topology = nullptr;
 int topo_part_info_synced = 0;
 
 void realloc_topology(int size)
@@ -46,7 +46,7 @@ void realloc_topology(int size)
     realloc_intlist(&topology[m].part, 0);
   }
   
-  topology = (Molecule*)Utils::realloc(topology, size*sizeof(Molecule));
+  topology = Utils::realloc(topology, size*sizeof(Molecule));
 
   if (n_molecules < 0)
     n_molecules = 0;

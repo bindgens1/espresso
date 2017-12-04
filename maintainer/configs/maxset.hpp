@@ -1,9 +1,11 @@
 /* maximal set of features usable at the same time */
 #define PARTIAL_PERIODIC
 #define ELECTROSTATICS
+#define COULOMB_DEBYE_HUECKEL
 #define DIPOLES
 #define ROTATION
 #define ROTATIONAL_INERTIA
+#define PARTICLE_ANISOTROPY
 #define EXTERNAL_FORCES
 #define CONSTRAINTS
 #define MASS
@@ -16,6 +18,7 @@
 #define MODES
 #endif
 
+#define BOND_CONSTRAINT
 #define BOND_VIRTUAL
 #define COLLISION_DETECTION
 #define LANGEVIN_PER_PARTICLE
@@ -25,6 +28,7 @@
 #define NEMD
 #define NPT 
 #define GHMC
+#define DPD
 
 #define LB
 #define LB_BOUNDARIES
@@ -37,7 +41,6 @@
 #define LB_BOUNDARIES_GPU
 #define ELECTROKINETICS
 #define EK_BOUNDARIES
-#define EK_REACTION
 #define EK_ELECTROSTATIC_COUPLING
 #define MMM1D_GPU
 #define EWALD_GPU
@@ -77,7 +80,4 @@
 #define VIRTUAL_SITES_RELATIVE
 #define FLATNOISE
 
-
-
-
-
+#define ADDITIONAL_CHECKS
