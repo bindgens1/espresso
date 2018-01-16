@@ -35,7 +35,7 @@ cimport numpy as np
 from globals cimport n_configs, min_box_l
 from collections import OrderedDict
 from .system import System
-
+from espressomd.utils import is_valid_type
 
 class Analysis(object):
 
@@ -65,41 +65,36 @@ class Analysis(object):
 
     def min_dist(self, p1='default', p2='default'):
         """Minimal distance between two sets of particles.
-        
+
         Parameters
         ----------
         p1, p2 : lists of :obj:`int` (:attr:`espressomd.particle_data.ParticleHandle.type`)
 
         """
 
-        cdef int_list * set1
-        cdef int_list * set2
+        cdef int_list set1
+        cdef int_list set2
 
         if p1 == 'default' and p2 == 'default':
-            result = c_analyze.mindist(c_analyze.partCfg(), NULL, NULL)
+            pass
         elif (p1 == 'default' and not p2 == 'default') or \
              (not p1 == 'default' and p2 == 'default'):
             raise Exception("Both, p1 and p2 have to be specified\n" + __doc__)
         else:
             for i in range(len(p1)):
-                if not isinstance(p1[i], int):
+                if not is_valid_type(p1[i], int):
                     raise ValueError(
                         "Particle types in p1 and p2 have to be of type int: " + str(p1[i]))
 
             for i in range(len(p2)):
-                if not isinstance(p2[i], int):
+                if not is_valid_type(p2[i], int):
                     raise ValueError(
                         "Particle types in p1 and p2 have to be of type int" + str(p2[i]))
 
             set1 = create_int_list_from_python_object(p1)
             set2 = create_int_list_from_python_object(p2)
 
-            result = c_analyze.mindist(c_analyze.partCfg(), set1, set2)
-
-            realloc_intlist(set1, 0)
-            realloc_intlist(set2, 0)
-
-        return result
+        return c_analyze.mindist(c_analyze.partCfg(), set1, set2)
 
     #
     # Distance to particle or point
@@ -137,7 +132,7 @@ class Analysis(object):
         # Get position
         # If particle id specified
         if id is not None:
-            if not isinstance(id, int):
+            if not is_valid_type(id, int):
                 raise ValueError("Id has to be an integer")
             if not id in self._system.part[:].id:
                 raise ValueError("Id has to be an index of an existing particle")
@@ -227,7 +222,7 @@ class Analysis(object):
         """
 
         cdef int planedims[3]
-        cdef int_list * il = NULL
+        cdef int_list ids
         cdef double c_pos[3]
 
         check_type_or_throw_except(
@@ -252,14 +247,9 @@ class Analysis(object):
         for i in range(3):
             c_pos[i] = pos[i]
 
-        il = <int_list * > malloc(sizeof(int_list))
-        c_analyze.nbhood(c_analyze.partCfg(), c_pos, r_catch, il, planedims)
+        ids = c_analyze.nbhood(c_analyze.partCfg(), c_pos, r_catch, planedims)
 
-        result = create_nparray_from_int_list(il)
-        realloc_intlist(il, 0)
-        free(il)
-        return result
-
+        return create_nparray_from_int_list(&ids)
 
     def cylindrical_average(self, center=None, axis=None,
                             length=None, radius=None,
@@ -377,10 +367,7 @@ class Analysis(object):
         * "nonbonded_inter" type_i, type_j", nonboned pressure between short ranged forces between type i and j and different mol_ids
         * "coulomb", Maxwell stress, how it is calculated depends on the method
         * "dipolar", TODO
-        * "vs_relative", In case of rigid body rotation, virial contribution from torques is not included.
-           The pressure contribution for rigid bodies constructed by means of the
-           VIRTUAL\_SITES\_RELATIVE mechanism is included. On the other hand, the
-           pressure contribution for rigid bonds is not included.
+        * "virtual_sites", Stress contribution due to virtual sites
         
         """
         v_comp=int(v_comp)
@@ -458,8 +445,13 @@ class Analysis(object):
             p["dipolar"] = total_dipolar
 
         # virtual sites
-        IF VIRTUAL_SITES_RELATIVE == 1:
-            p["vs_relative"] = c_analyze.total_pressure.vs_relative[0]
+        IF VIRTUAL_SITES == 1:
+            p_vs=0.
+            for i in range(c_analyze.total_pressure.n_virtual_sites):
+                p_vs +=  c_analyze.total_pressure.virtual_sites[i]
+                p["virtual_sites",i] = c_analyze.total_pressure.virtual_sites[0]
+            if c_analyze.total_pressure.n_virtual_sites:
+                p["virtual_sites"] = p_vs
 
         return p
 
@@ -481,10 +473,7 @@ class Analysis(object):
         * "nonbonded_inter type_i", type_j, nonboned stress tensor between short ranged forces between type i and j and different mol_ids
         * "coulomb", Maxwell stress tensor, how it is calculated depends on the method
         * "dipolar", TODO
-        * "vs_relative", In case of rigid body rotation, virial contribution from torques is not included.
-           The stress_tensor contribution for rigid bodies constructed by means of the
-           VIRTUAL\_SITES\_RELATIVE mechanism is included. On the other hand, the
-           pressure contribution for rigid bonds is not included.
+        * "virtual_sites", Stress tensor contribution for virtual sites
         
         """
         v_comp=int(v_comp)
@@ -576,8 +565,14 @@ class Analysis(object):
 
         # virtual sites
         IF VIRTUAL_SITES_RELATIVE == 1:
-            p["vs_relative"] = np.reshape(create_nparray_from_double_array(
-                c_analyze.total_p_tensor.vs_relative, 9), (3, 3))
+            total_vs = np.zeros((3,3))
+            for i in range(c_analyze.total_p_tensor.n_virtual_sites):
+                p["virtual_sites", i] = np.reshape(
+                    create_nparray_from_double_array(
+                      c_analyze.total_p_tensor.virtual_sites +9*i, 9), (3, 3) )
+                total_vs += p["virtual_sites", i]
+            if c_analyze.total_p_tensor.n_virtual_sites:
+                p["virtual_sites"] = total_vs
 
         return p
 
@@ -622,19 +617,36 @@ class Analysis(object):
         
         """
 
-        cdef double_list local_stress_tensor
+        cdef vector[double_list] local_stress_tensor
         cdef int[3] c_periodicity, c_bins
+        cdef int lst_ind, t_ind
         cdef double[3] c_range_start, c_stress_range
 
+        n_bins = 1
         for i in range(3):
+            n_bins *= bins[i]
             c_bins[i] = bins[i]
             c_periodicity[i] = periodicity[i]
             c_range_start[i] = range_start[i]
             c_stress_range[i] = stress_range[i]
 
-        if c_analyze.analyze_local_stress_tensor(c_periodicity, c_range_start, c_stress_range, c_bins, &local_stress_tensor):
+
+        local_stress_tensor.resize(n_bins, double_list(9, 0.0))
+
+        if c_analyze.analyze_local_stress_tensor(c_periodicity, c_range_start, c_stress_range, c_bins, local_stress_tensor.data()):
             handle_errors("Error while calculating local stress tensor")
-        stress_tensor = create_nparray_from_double_list(&local_stress_tensor)
+
+        stress_tensor = np.zeros((bins[0], bins[1], bins[2], 3, 3))
+
+        for i in range(bins[0]):
+            for j in range(bins[1]):
+                for k in range(bins[2]):
+                    for l in range(3):
+                        for m in range(3):
+                            lst_ind = i * bins[1]* bins[2] + j * bins[2] + k
+                            t_ind = l * 3 + m
+                            stress_tensor[i, j, k, l, m] = local_stress_tensor[lst_ind][t_ind]
+
         return stress_tensor
 
     #
@@ -737,7 +749,7 @@ class Analysis(object):
 
     def calc_re(self, chain_start=None, number_of_chains=None, chain_length=None):
         """
-        Calculates the Root Mean Square end-to-end distance of chains and its
+        Calculates the Mean end-to-end distance of chains and its
         standard deviation, as well as Mean Square end-to-end distance of
         chains and its standard deviation.
         
@@ -761,7 +773,7 @@ class Analysis(object):
         Returns            
         -------
         array_like : :obj:`float`
-                     Where [0] is the Root Mean Square end-to-end distance of chains
+                     Where [0] is the Mean end-to-end distance of chains
                      and [1] its standard deviation,
                      [2] the Mean Square end-to-end distance
                      and [3] its standard deviation.
@@ -777,17 +789,13 @@ class Analysis(object):
 
     def calc_rg(self, chain_start=None, number_of_chains=None, chain_length=None):
         """
-        Calculates the radius of gyration of chains and its standard deviation,
-        as well as the Mean Square radius of gyration of chains and its
+        Calculates the mean radius of gyration of chains and its standard deviation,
+        as well as the mean square radius of gyration of chains and its
         standard deviation.
         
         This requires that a set of chains of equal length which start with the
         particle with particle number ``chain_start`` and are consecutively
         numbered, the last particle in that topology has id number
-
-        .. math::
-
-            ``chain_start`` + ``number_of_chains`` * ``chain_length`` - 1.
 
         Parameters
         ----------
@@ -801,7 +809,7 @@ class Analysis(object):
         Returns            
         -------
         array_like : :obj:`float`
-                     Where [0] is the Root Mean Square radius of gyration of the chains
+                     Where [0] is the Mean radius of gyration of the chains
                      and [1] its standard deviation,
                      [2] the Mean Square radius of gyration
                      and [3] its standard deviation.
@@ -1147,30 +1155,31 @@ class Analysis(object):
 
         Parameters
         ----------
-        p_type : list of :obj:`int` (:attr:`espressomd.particle_data.ParticleHandle.type`)
-                 A particle type, or list of all particle types to be considered.
+        p_type : :obj:`int` (:attr:`espressomd.particle_data.ParticleHandle.type`)
+                 A particle type
 
         Returns
         -------
         array_like
-            The output is a list of all the elements of the 3x3 matrix.
+            3x3 moment of inertia matrix.
       
         """
 
         cdef double[9] MofImatrix
 
-        if p_type is not None:
-            check_type_or_throw_except(p_type, 1, int, "p_type has to be an int")
-            if (p_type < 0 or p_type >= c_analyze.n_particle_types):
-                raise ValueError("Particle type", p_type, "does not exist!")
+        if p_type is None:
+            raise ValueError("The p_type keyword argument must be provided (particle type)")
+        check_type_or_throw_except(p_type, 1, int, "p_type has to be an int")
+        if (p_type < 0 or p_type >= c_analyze.n_particle_types):
+            raise ValueError("Particle type", p_type, "does not exist!")
+        
+        c_analyze.momentofinertiamatrix(c_analyze.partCfg(), p_type, MofImatrix)
 
-            c_analyze.momentofinertiamatrix(c_analyze.partCfg(), p_type, MofImatrix)
+        MofImatrix_np = np.empty((9))
+        for i in range(9):
+            MofImatrix_np[i] = MofImatrix[i]
 
-            MofImatrix_np = np.empty((9))
-            for i in range(9):
-                MofImatrix_np[i] = MofImatrix[i]
-
-            return MofImatrix_np
+        return MofImatrix_np.reshape((3,3))
 
     #
     # rdfchain
