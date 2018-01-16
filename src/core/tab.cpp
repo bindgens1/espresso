@@ -64,11 +64,10 @@ int tabulated_bonded_set_params(int bond_type,
   bonded_ia_params[bond_type].type = BONDED_IA_TABULATED;
   bonded_ia_params[bond_type].p.tab.type = tab_type;
   bonded_ia_params[bond_type].p.tab.pot = new TabulatedPotential;
-  auto tab_pot = bonded_ia_params[bond_type].p.tab.pot;
-
   bonded_ia_params[bond_type].p.tab.breakable = breakable;
   bonded_ia_params[bond_type].p.tab.bond_id = bond_type;
 
+  auto tab_pot = bonded_ia_params[bond_type].p.tab.pot;
 
   /* set number of interaction partners */
   if (tab_type == TAB_BOND_LENGTH) {
@@ -91,6 +90,9 @@ int tabulated_bonded_set_params(int bond_type,
   tab_pot->invstepsize = static_cast<double>(force.size() - 1) / (max - min);
   tab_pot->force_tab = force;
   tab_pot->energy_tab = energy;
+  
+// Try to solve issue for missing parameter here  
+  tab_pot->breakable = breakable;
 
   mpi_bcast_ia_params(bond_type, -1);
 

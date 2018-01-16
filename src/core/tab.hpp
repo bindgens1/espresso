@@ -127,8 +127,7 @@ inline double tabulated_pair_energy(Particle const *, Particle const *,
     the first two tabulated force values.
     Needs feature TABULATED compiled in (see \ref config.hpp). */
 
-
-//This function will contain the error!
+//This function contains the error!
 inline int calc_tab_bond_force(Particle *p1, Particle *p2,
                                Bonded_ia_parameters const *iaparams,
                                double dx[3], double force[3]) {
@@ -144,11 +143,11 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2,
   return 0;
   }
 
-  if(dist > iaparams->p.tab.maxval)
+  if(dist > tab_pot->cutoff())
   {
-   if (iaparams->p.tab.breakable) {
+   if (tab_pot -> breakable) {
      // Queue for graceful bond breakage
-     bond_breakage().queue_breakage(iaparams->p.tab.bond_id, p1->p.identity,p2->p.identity);
+     bond_breakage().queue_breakage(tab_pot -> bond_id, p1->p.identity,p2->p.identity);
      return 0;
    }
    else

@@ -29,6 +29,9 @@ struct TabulatedPotential {
 
   double cutoff() const { return maxval; }
 
+  bool breakable = 0;
+  int bond_id;
+
 private:
   friend boost::serialization::access;
   template <typename Archive>
