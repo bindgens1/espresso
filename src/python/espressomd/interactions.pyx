@@ -2057,7 +2057,7 @@ IF TABULATED == 1:
             """Sets parameters that are not required to their default value.
 
             """
-            self._params = {'min': -1., 'max': -1., 'energy': [], 'force': [], "breakable": False}
+            self._params = {'min': -1., 'max': -1., 'energy': [], 'force': [], 'breakable': False}
 
         def _get_params_from_es_core(self):
             res = \
@@ -2065,9 +2065,9 @@ IF TABULATED == 1:
                  "min": bonded_ia_params[self._bond_id].p.tab.pot.minval,
                  "max": bonded_ia_params[self._bond_id].p.tab.pot.maxval,
                  "energy": bonded_ia_params[self._bond_id].p.tab.pot.energy_tab,
-                 "force": bonded_ia_params[self._bond_id].p.tab.pot.force_tab
-                 "breakable": bonded_ia_params[self._bond_id].p.tab.breakable}
-                }
+                 "force": bonded_ia_params[self._bond_id].p.tab.pot.force_tab,
+                 "breakable": bonded_ia_params[self._bond_id].p.tab.pot.breakable}
+                
             if res["type"] == 1:
                 res["type"] = "distance"
             if res["type"] == 2:
@@ -2092,8 +2092,8 @@ IF TABULATED == 1:
                 self._params["min"],
                 self._params["max"],
                 self._params["energy"],
-                self._params["force"])
-                self._params["breakable"]
+                self._params["force"],
+                self._params["breakable"])
 
             if res == 1:
                 raise Exception("Could not setup tabulated bond. Invalid bond type.")
@@ -2150,7 +2150,7 @@ IF TABULATED == 1:
             """Sets parameters that are not required to their default value.
 
             """
-            self._params = {'min': -1., 'max': -1, 'energy': [], 'force': []}
+            self._params = {'min': -1., 'max': -1, 'energy': [], 'force': [], 'breakable': False}
 
         def _get_params_from_es_core(self):
             cdef ia_parameters * ia_params = get_ia_param_safe(
@@ -2160,7 +2160,8 @@ IF TABULATED == 1:
             return {'min': ia_params.TAB.minval,
                     'max': ia_params.TAB.maxval,
                     'energy': ia_params.TAB.energy_tab,
-                    'force': ia_params.TAB.force_tab}
+                    'force': ia_params.TAB.force_tab,
+                    'breakable':ia_params.TAB.breakable}
 
         def _set_params_in_es_core(self):
             self.state = tabulated_set_params(self._part_types[0],
@@ -2168,7 +2169,8 @@ IF TABULATED == 1:
                                               self._params["min"],
                                               self._params["max"],
                                               self._params["energy"],
-                                              self._params["force"])
+                                              self._params["force"],
+                                              self._params["breakable"])
 
         def is_active(self):
             """Check if interaction is active.

@@ -85,6 +85,17 @@ Particle **local_particles = nullptr;
  * local functions
  ************************************************/
 
+/** Allocate an \ref IntList of size size. If you need an \ref IntList
+    with variable size better use \ref realloc_intlist */
+
+/** Reallocate an \ref IntList */
+inline void realloc_intlist(IntList *il, int size) {
+  if (size != il->max) {
+    il->max = size;
+    il->e = (int *)Utils::realloc(il->e, sizeof(int) * il->max);
+  }
+}
+
 /** Remove bond from particle if possible */
 int try_delete_bond(Particle *part, int *bond);
 

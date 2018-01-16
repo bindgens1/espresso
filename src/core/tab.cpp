@@ -64,8 +64,8 @@ int tabulated_bonded_set_params(int bond_type,
   bonded_ia_params[bond_type].type = BONDED_IA_TABULATED;
   bonded_ia_params[bond_type].p.tab.type = tab_type;
   bonded_ia_params[bond_type].p.tab.pot = new TabulatedPotential;
-  bonded_ia_params[bond_type].p.tab.breakable = breakable;
-  bonded_ia_params[bond_type].p.tab.bond_id = bond_type;
+  //bonded_ia_params[bond_type].p.tab.breakable = breakable;
+  //bonded_ia_params[bond_type].p.tab.bond_id = bond_type;
 
   auto tab_pot = bonded_ia_params[bond_type].p.tab.pot;
 
