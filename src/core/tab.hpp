@@ -134,6 +134,24 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2,
   auto const *tab_pot = iaparams->p.tab.pot;
   auto const dist = sqrt(sqrlen(dx));
 
+//  if (dist < tab_pot->cutoff()) {
+//    auto const fac = tab_pot->force(dist) / dist;
+//
+//    for (int j = 0; j < 3; j++)
+//      force[j] -= fac * dx[j];
+//  
+//  return 0;
+//  }
+
+  if(dist >= tab_pot->cutoff()) {
+    if (iaparams->p.tab.breakable) {
+      // Queue for graceful bond breakage
+      bond_breakage().queue_breakage(iaparams->p.tab.bond_id, p1->p.identity,p2->p.identity);
+      return 0;
+    }
+  } 
+
+
   if (dist < tab_pot->cutoff()) {
     auto const fac = tab_pot->force(dist) / dist;
 
@@ -143,19 +161,12 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2,
   return 0;
   }
 
-  if(dist >= tab_pot->cutoff())
-  {
-   if (iaparams->p.tab.breakable) {
-     // Queue for graceful bond breakage
-     bond_breakage().queue_breakage(iaparams->p.tab.bond_id, p1->p.identity,p2->p.identity);
-     return 0;
-   }
-   else
+  else
    {
      // Report broken bond, will cause runtime error
      return 1;
    }
-  }
+  
   
 }
 

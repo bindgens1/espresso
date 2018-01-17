@@ -29,7 +29,7 @@ struct TabulatedPotential {
 
   double cutoff() const { return maxval; }
 
-  bool breakable = 0;
+  bool breakable;
   int bond_id;
 
 private:
