@@ -2067,7 +2067,7 @@ IF TABULATED == 1:
                  "energy": bonded_ia_params[self._bond_id].p.tab.pot.energy_tab,
                  "force": bonded_ia_params[self._bond_id].p.tab.pot.force_tab,
                  "breakable": bonded_ia_params[self._bond_id].p.tab.pot.breakable}
-                
+
             if res["type"] == 1:
                 res["type"] = "distance"
             if res["type"] == 2:

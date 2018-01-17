@@ -92,7 +92,7 @@ int tabulated_bonded_set_params(int bond_type,
   tab_pot->energy_tab = energy;
   
 // Try to solve issue for missing parameter here  
-  tab_pot->breakable = breakable;
+  //tab_pot->breakable = breakable;
 
   mpi_bcast_ia_params(bond_type, -1);
 
