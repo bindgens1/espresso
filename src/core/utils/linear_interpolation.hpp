@@ -6,9 +6,12 @@
 namespace Utils {
 template <typename T, typename Container>
 T linear_interpolation(Container const &table, T hi, T offset, T x) {
+  
+  //printf("\nhi, offset, x: %f, %f, %f \n", hi, offset, x);
+  
   auto const dind = (x - offset) * hi;
   auto const ind = static_cast<int>(dind);
-  assert(ind <= dind);
+  //assert(ind <= dind);
   auto const dx = dind - ind;
 
   /* linear interpolation between data points */

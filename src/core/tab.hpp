@@ -131,6 +131,7 @@ inline double tabulated_pair_energy(Particle const *, Particle const *,
 inline int calc_tab_bond_force(Particle *p1, Particle *p2,
                                Bonded_ia_parameters const *iaparams,
                                double dx[3], double force[3]) {
+  
   auto const *tab_pot = iaparams->p.tab.pot;
   auto const dist = sqrt(sqrlen(dx));
 
@@ -142,8 +143,11 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2,
 //  
 //  return 0;
 //  }
+  
+  //printf("\nDistance: %f \n", dist);
 
   if(dist >= tab_pot->cutoff()) {
+    //printf("Bond brakage loop");
     if (iaparams->p.tab.breakable) {
       // Queue for graceful bond breakage
       bond_breakage().queue_breakage(iaparams->p.tab.bond_id, p1->p.identity,p2->p.identity);
@@ -152,22 +156,22 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2,
   } 
 
 
-  if (dist < tab_pot->cutoff()) {
+  else if (dist < tab_pot->cutoff()) {
+    //printf("Force calc loop");
+
     auto const fac = tab_pot->force(dist) / dist;
 
     for (int j = 0; j < 3; j++)
       force[j] -= fac * dx[j];
   
-  return 0;
+    return 0;
   }
 
   else
-   {
-     // Report broken bond, will cause runtime error
-     return 1;
-   }
-  
-  
+    {
+      // Report broken bond, will cause runtime error
+      return 1;
+    }
 }
 
 /** Calculate and return a tabulated bond length energy with number
