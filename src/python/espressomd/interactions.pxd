@@ -31,6 +31,7 @@ cdef extern from "TabulatedPotential.hpp":
         vector[double] energy_tab
         vector[double] force_tab
         bool breakable
+        int bond_id
 
 cdef extern from "interaction_data.hpp":
     ctypedef struct ia_parameters "IA_parameters":

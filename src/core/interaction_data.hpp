@@ -644,6 +644,8 @@ typedef struct {
 typedef struct {
   TabulatedBondedInteraction type;
   TabulatedPotential *pot;
+  bool breakable;
+  int bond_id;
 } Tabulated_bond_parameters;
 
 /** Parameters for n-body overlapped potential (n=2,3,4). */

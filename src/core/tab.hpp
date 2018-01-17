@@ -143,9 +143,9 @@ inline int calc_tab_bond_force(Particle *p1, Particle *p2,
   return 0;
   }
 
-  if(dist > tab_pot->cutoff())
+  if(dist >= tab_pot->cutoff())
   {
-   if (tab_pot -> breakable) {
+   if (! tab_pot -> breakable) {
      // Queue for graceful bond breakage
      bond_breakage().queue_breakage(tab_pot -> bond_id, p1->p.identity,p2->p.identity);
      return 0;
