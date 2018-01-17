@@ -61,7 +61,7 @@
 */
 int tabulated_set_params(int part_type_a, int part_type_b, double min,
                          double max, std::vector<double> const &energy,
-                         std::vector<double> const &force, bool breakable);
+                         std::vector<double> const &force);
 
 /** Bonded tabulated potentials: Reads tabulated parameters and force
     and energy tables from a file.  ia_params and force/energy tables

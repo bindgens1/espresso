@@ -2169,7 +2169,6 @@ IF TABULATED == 1:
                                               self._params["max"],
                                               self._params["energy"],
                                               self._params["force"],
-                                              self._params["breakable"]
                                               )
 
         def is_active(self):

@@ -202,8 +202,8 @@ IF TABULATED==1:
         int tabulated_set_params(int part_type_a, int part_type_b,
                                  double min, double max,
                                  vector[double] energy,
-                                 vector[double] force,
-                                 bool breakable)
+                                 vector[double] force
+                                 )
 
 cdef extern from "interaction_data.hpp":
     ctypedef struct Fene_bond_parameters:
