@@ -30,6 +30,7 @@ class ParticleProperties(ut.TestCase):
     #    self.pid=particleId
     # the system which will be tested
     system = espressomd.System()
+    system.box_l=10,10,10
 
     # Particle id to work on
     pid = 17
@@ -124,8 +125,16 @@ class ParticleProperties(ut.TestCase):
             0, SubtLJ, {})
 
     if espressomd.has_features(["TABULATED"]):
-        test_tabulated = generateTestForBondParams(
-            0, Tabulated, {"type": "distance", "filename": abspath("data/lj1.tab")})
+        test_tabulated = generateTestForBondParams(0, Tabulated, {"type": "distance",
+                                                                  "min": 1.,
+                                                                  "max": 2.,
+                                                                  "energy": [1.,2.,3.],
+                                                                  "force": [3.,4.,5.]})
+
+
+    if "TABULATED" in espressomd.features():
+      test_tabulated = generateTestForBondParams(0, Tabulated, {"type": "distance", "filename":abspath("data/lj1.tab"),"breakable":1})
+
 
 
 if __name__ == "__main__":
