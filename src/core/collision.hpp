@@ -37,7 +37,9 @@ class Collision_parameters {
 public:
   Collision_parameters()
       : mode(COLLISION_MODE_OFF), distance(0.), bond_centers(-1), bond_vs(-1),
-        bond_three_particles(-1){};
+        bond_three_particles(-1),
+        collision_probability(1.),
+        ignore_time(0.) {};
 
   /// collision handling mode, a combination of constants COLLISION_MODE_*
   int mode;
@@ -74,6 +76,10 @@ public:
   /** Placement of virtual sites for MODE_VS. 0=on same particle as related to,
    * 1=on collision partner. 0.5=in the middle between */
   double vs_placement;
+  /** Probability for binding two colliding particles */
+  double collision_probability;
+  /** Time to ignore a pair after considering it for a collision */
+  double ignore_time;
 };
 /// Parameters for collision detection
 extern Collision_parameters collision_params;
