@@ -69,6 +69,7 @@ void remove_outdated_from_ignore_queue() {
 
   while (ignore_queue[0].remove_time<sim_time) {
     ignore_queue.pop_front();
+    if (ignore_queue.empty()) return;
   }
 }
 
@@ -266,6 +267,7 @@ bool validate_collision_parameters() {
 
   recalc_forces = 1;
   rebuild_verletlist = 1;
+  ignore_queue.clear();
 
   return true;
 }
@@ -664,7 +666,9 @@ void handle_collisions ()
     local_collision_queue.erase(std::remove_if(
       local_collision_queue.begin(), local_collision_queue.end(),
       [](collision_struct &c) {
-        return pair_in_ignore_queue(c.pp1,c.pp2);
+        bool res= pair_in_ignore_queue(c.pp1,c.pp2);
+        if (res) {}
+        return res;
       }), local_collision_queue.end());
 
   // Test for collision probability. Remove collisions which fail the random criterion
