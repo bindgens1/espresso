@@ -140,12 +140,8 @@ enum Fields {
   FIELD_GHMC_FLIP,
   /** index of \ref ghmc_phi in \ref #fields */
   FIELD_GHMC_SCALE,
-  /** index of \ref lb_components in \ref #fields */
-  FIELD_LB_COMPONENTS,
   /** index of \ref warnings in \ref #fields */
   FIELD_WARNINGS,
-  /** index of \ref smaller_timestep in \ref #fields */
-  FIELD_SMALLERTIMESTEP,
   /** index of \ref langevin_trans in \ref #fields */
   FIELD_LANGEVIN_TRANS_SWITCH,
   /** index of \ref langevin_rotate in \ref #fields */
