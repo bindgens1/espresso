@@ -2283,6 +2283,19 @@ __device__ __inline__ void interpolation_two_point_coupling( LB_nodes_gpu n_a, f
   }
 }
 
+/*********************************************************/
+/** \name interpolation_two_point_coupling */
+/*********************************************************/
+/**Two point coupling for the positions shifted according to the Lees-Edwards Offset
+ * @param n_a                   Pointer to local node residing in array a (Input)
+ * @param *particle_position    Pointer to the particle position (Input)
+ * @param node_index            node index around (8) particle (Output)
+ * @param *mode                 Pointer to the 19 modes for current lattice point (Output)
+ * @param *d_v                  Pointer to local device values
+ * @param *delta                Pointer for the weighting of particle position (Output)
+ * @param le_position           Position shifted according to the Lees-Edwards offset
+ * @param *interpolated_u       Pointer to the interpolated velocity (Output)
+*/
 __device__ __inline__ void interpolation_two_point_coupling_LE( LB_nodes_gpu n_a, float *particle_position, unsigned int* node_index, float* mode, LB_rho_v_gpu *d_v, float* delta, float le_position, float *interpolated_u ) {
   
   int x, y, z;
