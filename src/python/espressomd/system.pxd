@@ -27,6 +27,9 @@ cdef extern from "grid.hpp":
 
 cdef extern from "communication.hpp" namespace "Random":
     void mpi_random_seed(int cnt, vector[int] & seed)
+cdef extern from "utils.hpp":
+    void get_mi_vector(double * res, double * a, double * b)
+
 
 cdef extern from "forcecap.hpp":
     double forcecap_get()

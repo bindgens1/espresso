@@ -50,6 +50,9 @@
 #include "lees_edwards.hpp"
 
 #include <climits>
+#include "communication.hpp"
+#include "lees_edwards.hpp"
+#include "RuntimeErrorStream.hpp"
 
 /** Macro that tests for a coordinate being periodic or not. */
 #ifdef PARTIAL_PERIODIC

@@ -21,6 +21,7 @@ from __future__ import print_function, absolute_import
 from libcpp.string cimport string
 
 include "myconfig.pxi"
+from . import bond_breakage as _bond_breakage
 from . import utils
 from espressomd.utils import is_valid_type
 
@@ -115,7 +116,7 @@ cdef class NonBondedInteraction(object):
         for k in p.keys():
             if k not in self.valid_keys():
                 raise ValueError(
-                    "Only the following keys are supported: " + self.valid_keys().__str__())
+                    "Only the following keys are supported: " + self.valid_keys().__str__()+", got "+k)
 
         # When an interaction is newly activated, all required keys must be
         # given
@@ -1910,7 +1911,7 @@ class HarmonicBond(BondedInteraction):
         """All parameters that can be set.
 
         """
-        return "k", "r_0", "r_cut"
+        return "k", "r_0", "r_cut", "breakable"
 
     def required_keys(self):
         """Parameters that have to be set.
@@ -1922,17 +1923,19 @@ class HarmonicBond(BondedInteraction):
         """Sets parameters that are not required to their default value.
 
         """
-        self._params = {"k": 0., "r_0": 0., "r_cut": 0.}
+        self._params = {"k": 0., "r_0": 0., "r_cut": 0., "breakable": False}
 
     def _get_params_from_es_core(self):
         return \
             {"k": bonded_ia_params[self._bond_id].p.harmonic.k,
              "r_0": bonded_ia_params[self._bond_id].p.harmonic.r,
-             "r_cut": bonded_ia_params[self._bond_id].p.harmonic.r_cut}
+             "r_cut": bonded_ia_params[self._bond_id].p.harmonic.r_cut,
+             "breakable": bonded_ia_params[self._bond_id].p.harmonic.breakable}
 
     def _set_params_in_es_core(self):
         harmonic_set_params(
-            self._bond_id, self._params["k"], self._params["r_0"], self._params["r_cut"])
+            self._bond_id, self._params["k"], self._params["r_0"], self._params["r_cut"],self._params["breakable"])
+        self._params=self._get_params_from_es_core()
 
 if ELECTROSTATICS:
     class BondedCoulomb(BondedInteraction):
@@ -2390,7 +2393,7 @@ IF TABULATED == 1:
             """All parameters that can be set.
 
             """
-            return "type", "min", "max", "energy", "force"
+            return "type", "min", "max", "energy", "force", "breakable"
 
         def required_keys(self):
             """Parameters that have to be set.
@@ -2398,21 +2401,22 @@ IF TABULATED == 1:
             """
             return "type", "min", "max", "energy", "force"
 
+        
         def set_default_params(self):
             """Sets parameters that are not required to their default value.
 
             """
-            self._params = {'min': -1., 'max': -1., 'energy': [], 'force': []}
+            self._params = {'min': -1., 'max': -1., 'energy': [], 'force': [], 'breakable': False}
 
         def _get_params_from_es_core(self):
-            make_bond_type_exist(self._bond_id)
             res = \
                 {"type": bonded_ia_params[self._bond_id].p.tab.type,
                  "min": bonded_ia_params[self._bond_id].p.tab.pot.minval,
                  "max": bonded_ia_params[self._bond_id].p.tab.pot.maxval,
                  "energy": bonded_ia_params[self._bond_id].p.tab.pot.energy_tab,
-                 "force": bonded_ia_params[self._bond_id].p.tab.pot.force_tab
-                }
+                 "force": bonded_ia_params[self._bond_id].p.tab.pot.force_tab,
+                 "breakable": bonded_ia_params[self._bond_id].p.tab.pot.breakable}
+
             if res["type"] == 1:
                 res["type"] = "distance"
             if res["type"] == 2:
@@ -2437,7 +2441,8 @@ IF TABULATED == 1:
                 self._params["min"],
                 self._params["max"],
                 self._params["energy"],
-                self._params["force"])
+                self._params["force"],
+                self._params["breakable"])
 
             if res == 1:
                 raise Exception("Could not setup tabulated bond. Invalid bond type.")
@@ -2512,7 +2517,8 @@ IF TABULATED == 1:
                                               self._params["min"],
                                               self._params["max"],
                                               self._params["energy"],
-                                              self._params["force"])
+                                              self._params["force"],
+                                              )
 
         def is_active(self):
             """Check if interaction is active.
@@ -3001,6 +3007,7 @@ class BondedInteractions(object):
     BondedInteractions[i], where i is the bond id. Will return a bonded interaction
     from bonded_interaction_classes"""
 
+    
     def __getitem__(self, key):
         if not is_valid_type(key, int):
             raise ValueError(
@@ -3055,7 +3062,11 @@ class BondedInteractions(object):
     def add(self, bonded_ia):
         """Add a bonded ia to the simulation>"""
         self[n_bonded_ia] = bonded_ia
-
+    
+    # Lets the user interact with the bond_breakage mechanism
+    bond_breakage = _bond_breakage.BondBreakage() 
+    
+    
     def __getstate__(self):
         params = {}
         for i, bonded_instance in enumerate(self):

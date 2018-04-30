@@ -131,6 +131,11 @@ class ParticleProperties(ut.TestCase):
                                                                   "force": [3.,4.,5.]})
 
 
+    if "TABULATED" in espressomd.features():
+      test_tabulated = generateTestForBondParams(0, Tabulated, {"type": "distance", "filename":abspath("data/lj1.tab"),"breakable":1})
+
+
+
 if __name__ == "__main__":
     print("Features: ", espressomd.features())
     ut.main()

@@ -33,6 +33,8 @@ cdef extern from "TabulatedPotential.hpp":
         double minval
         vector[double] energy_tab
         vector[double] force_tab
+        bool breakable
+        int bond_id
 
 cdef extern from "interaction_data.hpp":
     ctypedef struct ia_parameters "IA_parameters":
@@ -234,7 +236,8 @@ IF TABULATED==1:
         int tabulated_set_params(int part_type_a, int part_type_b,
                                  double min, double max,
                                  vector[double] energy,
-                                 vector[double] force);
+                                 vector[double] force
+                                 )
 
 cdef extern from "interaction_data.hpp":
     ctypedef struct Fene_bond_parameters:
@@ -268,6 +271,7 @@ cdef extern from "interaction_data.hpp":
         double k
         double r
         double r_cut
+        bool breakable
 
 #* Parameters for the harmonic dumbbell bond potential */
     ctypedef struct Harmonic_dumbbell_bond_parameters:
@@ -416,7 +420,7 @@ cdef extern from "interaction_data.hpp":
 cdef extern from "fene.hpp":
     int fene_set_params(int bond_type, double k, double drmax, double r0)
 cdef extern from "harmonic.hpp":
-    int harmonic_set_params(int bond_type, double k, double r, double r_cut)
+    int harmonic_set_params(int bond_type, double k, double r, double r_cut, bool breakable)
 cdef extern from "dihedral.hpp":
     int dihedral_set_params(int bond_type, int mult, double bend, double phase)
 cdef extern from "angle_harmonic.hpp":
@@ -449,7 +453,7 @@ IF TABULATED == 1:
         cdef enum TabulatedBondedInteraction:
             TAB_UNKNOWN = 0, TAB_BOND_LENGTH, TAB_BOND_ANGLE, TAB_BOND_DIHEDRAL
     cdef extern from "tab.hpp":
-        int tabulated_bonded_set_params(int bond_type, TabulatedBondedInteraction tab_type, double min, double max, vector[double] energy, vector[double] force)
+        int tabulated_bonded_set_params(int bond_type, TabulatedBondedInteraction tab_type, double min, double max, vector[double] energy, vector[double] force, bool breakable)
 
 IF BOND_ENDANGLEDIST == 1:
     cdef extern from "endangledist.hpp":

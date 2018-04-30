@@ -50,7 +50,7 @@ int tabulated_set_params(int part_type_a, int part_type_b, double min,
 int tabulated_bonded_set_params(int bond_type,
                                 TabulatedBondedInteraction tab_type, double min,
                                 double max, std::vector<double> const &energy,
-                                std::vector<double> const &force) {
+                                std::vector<double> const &force, bool breakable) {
   if (bond_type < 0)
     return 1;
 
@@ -64,6 +64,9 @@ int tabulated_bonded_set_params(int bond_type,
   bonded_ia_params[bond_type].type = BONDED_IA_TABULATED;
   bonded_ia_params[bond_type].p.tab.type = tab_type;
   bonded_ia_params[bond_type].p.tab.pot = new TabulatedPotential;
+  bonded_ia_params[bond_type].p.tab.breakable = breakable;
+  bonded_ia_params[bond_type].p.tab.bond_id = bond_type;
+
   auto tab_pot = bonded_ia_params[bond_type].p.tab.pot;
 
   /* set number of interaction partners */
@@ -85,9 +88,11 @@ int tabulated_bonded_set_params(int bond_type,
   }
 
   tab_pot->invstepsize = static_cast<double>(force.size() - 1) / (max - min);
-
   tab_pot->force_tab = force;
   tab_pot->energy_tab = energy;
+  
+// Try to solve issue for missing parameter here  
+  //tab_pot->breakable = breakable;
 
   mpi_bcast_ia_params(bond_type, -1);
 

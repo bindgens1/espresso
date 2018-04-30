@@ -68,6 +68,17 @@ template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
 
 } // Namespace Utils
 
+////Breakable bonds stuff
+//
+///** Reallocate an \ref IntList */
+//inline void realloc_intlist(IntList *il, int size) {
+//   if (size != il->max) {
+//     il->max = size;
+//     il->e = (int *)Utils::realloc(il->e, sizeof(int) * il->max);
+//   }
+//}
+
+
 /*************************************************************/
 /** \name Mathematical functions.                            */
 /*************************************************************/

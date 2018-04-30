@@ -35,6 +35,8 @@
 #include "debug.hpp"
 #include "interaction_data.hpp"
 #include "particle_data.hpp"
+#include "dihedral.hpp"
+#include "bond_breakage.hpp" 
 #include "utils.hpp"
 
 #include "dihedral.hpp"
@@ -69,6 +71,9 @@ int tabulated_set_params(int part_type_a, int part_type_b, double min,
     @param tab_type table type, TAB_BOND_LENGTH, TAB_BOND_ANGLE,
    TAB_BOND_DIHEDRAL
     @param filename from which file to fetch the data
+    @param breakable if true, the bond will break via the bond_breakage
+           breakage mechanism, if the distance is larger than the largest
+           in the table
 
     @return <ul>
     <li> 0 on success
@@ -83,7 +88,7 @@ int tabulated_set_params(int part_type_a, int part_type_b, double min,
 int tabulated_bonded_set_params(int bond_type,
                                 TabulatedBondedInteraction tab_type, double min,
                                 double max, std::vector<double> const &energy,
-                                std::vector<double> const &force);
+                                std::vector<double> const &force, bool breakable);
 
 /** Add a non-bonded pair force by linear interpolation from a table.
     Needs feature TABULATED compiled in (see \ref config.hpp). */
@@ -121,22 +126,52 @@ inline double tabulated_pair_energy(Particle const *, Particle const *,
     than the tabulated range it uses a linear extrapolation based on
     the first two tabulated force values.
     Needs feature TABULATED compiled in (see \ref config.hpp). */
+
+//This function contains the error!
 inline int calc_tab_bond_force(Particle *p1, Particle *p2,
                                Bonded_ia_parameters const *iaparams,
                                double dx[3], double force[3]) {
+  
   auto const *tab_pot = iaparams->p.tab.pot;
   auto const dist = sqrt(sqrlen(dx));
 
-  if (dist < tab_pot->cutoff()) {
+//  if (dist < tab_pot->cutoff()) {
+//    auto const fac = tab_pot->force(dist) / dist;
+//
+//    for (int j = 0; j < 3; j++)
+//      force[j] -= fac * dx[j];
+//  
+//  return 0;
+//  }
+  
+  //printf("\nDistance: %f \n", dist);
+
+  if(dist >= tab_pot->cutoff()) {
+    //printf("Bond brakage loop");
+    if (iaparams->p.tab.breakable) {
+      // Queue for graceful bond breakage
+      bond_breakage().queue_breakage(iaparams->p.tab.bond_id, p1->p.identity,p2->p.identity);
+      return 0;
+    }
+  } 
+
+
+  else if (dist < tab_pot->cutoff()) {
+    //printf("Force calc loop");
+
     auto const fac = tab_pot->force(dist) / dist;
 
     for (int j = 0; j < 3; j++)
       force[j] -= fac * dx[j];
-
+  
     return 0;
-  } else {
-    return 1;
   }
+
+  else
+    {
+      // Report broken bond, will cause runtime error
+      return 1;
+    }
 }
 
 /** Calculate and return a tabulated bond length energy with number

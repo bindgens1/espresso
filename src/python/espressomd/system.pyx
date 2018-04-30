@@ -54,6 +54,8 @@ IF COLLISION_DETECTION == 1:
     from .collision_detection import CollisionDetection
 
 import sys
+cimport tuning
+
 import random  # for true random numbers from os.urandom()
 cimport tuning
 

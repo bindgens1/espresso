@@ -45,6 +45,7 @@
 #include "lees_edwards.hpp"
 #include "maggs.hpp"
 #include "minimize_energy.hpp"
+#include "bond_breakage.hpp"
 #include "nemd.hpp"
 #include "accumulators.hpp"
 #include "p3m.hpp"
@@ -257,8 +258,13 @@ void integrate_vv(int n_steps, int reuse_forces) {
                      "only matters if it happens frequently during "
                      "sampling.\n");
 #endif
+    
+    bond_breakage().queue.clear();
 
+    
     force_calc();
+
+    bond_breakage().process_queue();
 
     if (integ_switch != INTEG_METHOD_STEEPEST_DESCENT) {
       rescale_forces();
@@ -356,7 +362,12 @@ void integrate_vv(int n_steps, int reuse_forces) {
     transfer_momentum_gpu = 1;
 #endif
 
+    bond_breakage().queue.clear();
+
+    
     force_calc();
+
+    bond_breakage().process_queue();
 
 // IMMERSED_BOUNDARY
 #ifdef IMMERSED_BOUNDARY

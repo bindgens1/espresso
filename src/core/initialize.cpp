@@ -63,6 +63,8 @@
 #include "reaction_field.hpp"
 #include "rotation.hpp"
 #include "scafacos.hpp"
+#include "bond_breakage.hpp"
+
 #include "statistics.hpp"
 #include "thermostat.hpp"
 #include "thermalized_bond.hpp"
@@ -128,6 +130,8 @@ void on_program_start() {
     /* interaction_data.c: make sure 0<->0 ia always exists */
     make_particle_type_exist(0);
   }
+
+  initialize_bond_breakage();
 }
 
 void on_integration_start() {

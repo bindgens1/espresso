@@ -565,9 +565,11 @@ typedef struct {
 
 /** Parameters for harmonic bond Potential */
 typedef struct {
-  double k;
-  double r;
-  double r_cut;
+      double k;
+      double r;
+      double r_cut;
+      bool breakable;
+      int bond_id;
 } Harmonic_bond_parameters;
 
 /** Parameters for Thermalized bond **/
@@ -661,6 +663,8 @@ typedef struct {
 typedef struct {
   TabulatedBondedInteraction type;
   TabulatedPotential *pot;
+  bool breakable;
+  int bond_id;
 } Tabulated_bond_parameters;
 
 /** Parameters for n-body overlapped potential (n=2,3,4). */

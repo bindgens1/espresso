@@ -56,6 +56,7 @@ function(PYTHON_TEST)
 endfunction(PYTHON_TEST)
 
 python_test(FILE test_checkpoint.py MAX_NUM_PROC 1 RUN_WITH_MPI FALSE DEPENDENCIES save_checkpoint.py)
+python_test(FILE bond_breakage.py MAX_NUM_PROC 1)
 python_test(FILE cellsystem.py MAX_NUM_PROC 4)
 python_test(FILE constraint_homogeneous_magnetic_field.py MAX_NUM_PROC 4)
 python_test(FILE constraint_shape_based.py MAX_NUM_PROC 4)
