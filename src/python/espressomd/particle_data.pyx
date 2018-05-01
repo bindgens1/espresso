@@ -27,7 +27,7 @@ from . cimport particle_data
 from .interactions import BondedInteraction
 from .interactions import BondedInteractions
 from copy import copy
-from globals cimport max_seen_particle, time_step, smaller_time_step, box_l, n_part, n_rigidbonds, n_particle_types
+from globals cimport max_seen_particle, time_step, box_l, n_part, n_rigidbonds, n_particle_types
 import collections
 import functools
 import types
@@ -59,7 +59,7 @@ cdef class ParticleHandle(object):
         self.id = _id
 
     cdef int update_particle_data(self) except -1:
-        self.particle_data = get_particle_data(self.id)
+        self.particle_data = get_particle_data_ptr(self.id)
         if not self.particle_data:
             raise Exception(
                 "Particle with id " + str(self.id) + " does not exist.")
@@ -203,6 +203,22 @@ cdef class ParticleHandle(object):
 
             return array_locked([ret[0], ret[1], ret[2]])
 
+    property image_box:
+        """
+        The image box the particles is in.
+
+        This is the number of times
+        the particle position has been folded by the box length in each
+        direction.
+        """
+
+        def __get__(self):
+            self.update_particle_data()
+
+            return array_locked([self.particle_data.l.i[0],
+                                 self.particle_data.l.i[1],
+                                 self.particle_data.l.i[2]])
+
     # Velocity
     property v:
         """
@@ -228,21 +244,12 @@ cdef class ParticleHandle(object):
                 raise Exception("Set particle position first.")
 
         def __get__(self):
-            global time_step, smaller_time_step
+            global time_step
             self.update_particle_data()
-            IF MULTI_TIMESTEP:
-                if smaller_time_step > 0. and self.smaller_timestep:
-                    return array_locked([self.particle_data.m.v[0] / smaller_time_step,
-                                         self.particle_data.m.v[1] / smaller_time_step,
-                                         self.particle_data.m.v[2] / smaller_time_step])
-                else:
-                    return array_locked([self.particle_data.m.v[0] / time_step,
-                                         self.particle_data.m.v[1] / time_step,
-                                         self.particle_data.m.v[2] / time_step])
-            ELSE:
-                return array_locked([self.particle_data.m.v[0] / time_step,
-                                     self.particle_data.m.v[1] / time_step,
-                                     self.particle_data.m.v[2] / time_step])
+
+            return array_locked([self.particle_data.m.v[0] / time_step,
+                                 self.particle_data.m.v[1] / time_step,
+                                 self.particle_data.m.v[2] / time_step])
 
     # Force
     property f:
@@ -340,32 +347,16 @@ cdef class ParticleHandle(object):
 
             return tuple(bonds)
 
+    property node:
+        """
+        The node the particle is on, identified by its MPI rank.
+        """
+
+        def __get__(self):
+            return get_particle_node(self.id)
+
+
     # Properties that exist only when certain features are activated
-    # MULTI_TIMESTEP
-    IF MULTI_TIMESTEP == 1:
-        property smaller_timestep:
-            """
-            smaller_timestep : :obj:`int`
-                               Particle flag specifying whether particle trajectory
-                               should be integrated with time_step of small_time_step.
-
-            .. note::
-               This needs the feature MULTI_TIMESTEP.
-
-            """
-
-            def __set__(self, _smaller_timestep):
-                check_type_or_throw_except(
-                    _smaller_timestep, 1, int, "Smaller time step flag has to be 1 ints")
-                if set_particle_smaller_timestep(self.id, _smaller_timestep) == 1:
-                    raise Exception("error setting particle smaller_timestep")
-
-            def __get__(self):
-                self.update_particle_data()
-                cdef const int * x = NULL
-                pointer_to_smaller_timestep(self.particle_data, x)
-                return x[0]
-
     # MASS
     property mass:
         """
@@ -650,8 +641,8 @@ cdef class ParticleHandle(object):
     IF VIRTUAL_SITES == 1:
 
         property virtual:
-            """
-            Virtual flag.
+            """ Virtual flag.
+
             Declares the particles as virtual (1) or non-virtual (0, default).
 
             virtual : integer
@@ -675,6 +666,32 @@ cdef class ParticleHandle(object):
                 return x[0]
 
     IF VIRTUAL_SITES_RELATIVE == 1:
+        property vs_quat:
+            """ Virtual site quaternion.
+
+            This quaternion describes the virtual particles orientation in the body
+            fixed frame of the related real particle.
+
+            vs_quat : array_like of :obj:`float`
+
+            .. note::
+               This needs the feature VIRTUAL_SITES_RELATIVE.
+
+            """
+            def __set__(self, q):
+                if len(q) != 4:
+                    raise ValueError("vs_quat has to be an array-like of length 4.")
+                cdef double _q[4]
+                for i in range(4):
+                    _q[i] = q[i]
+                set_particle_vs_quat(self.id, _q)
+
+            def __get__(self):
+                self.update_particle_data()
+                cdef const double *q = NULL
+                pointer_to_vs_quat(self.particle_data, q)
+                return np.array([q[0], q[1], q[2], q[3]])
+
         property vs_relative:
             """
             Virtual sites relative parameters.
@@ -692,7 +709,7 @@ cdef class ParticleHandle(object):
             """
 
             def __set__(self, x):
-                if len(x) != 3:
+                if len(x) < 3:
                     raise ValueError(
                         "vs_relative needs input like id,distance,(q1,q2,q3,q4).")
                 _relto = x[0]
@@ -1312,7 +1329,7 @@ cdef class ParticleHandle(object):
         """
 
         if remove_particle(self.id):
-            raise Exception("Could not delete particle.")
+            raise Exception("Could not remove particle.")
         del self
 
     # Bond related methods
@@ -1546,7 +1563,35 @@ cdef class ParticleHandle(object):
             self.update_particle_data()
             res= convert_vector_body_to_space(self.particle_data[0],_v)
             return np.array((res[0],res[1],res[2]))
+        
+        def convert_vector_space_to_body(self, vec):
+            """Converts the given vector from the space frame to the particle's body frame"""
+            cdef Vector3d res
+            cdef Vector3d _v
+            _v[0] = vec[0]
+            _v[1] = vec[1]
+            _v[2] = vec[2]
+            self.update_particle_data()
+            res= convert_vector_space_to_body(self.particle_data[0],_v)
+            return np.array((res[0],res[1],res[2]))
+        
 
+        def rotate(self,axis=None,angle=None):
+            """Rotates the particle around the given axis
+
+            Parameters
+            ----------
+            axis : array-like
+
+            angle : float
+
+            """
+            cdef double[3] a
+            a[0]=axis[0]
+            a[1]=axis[1]
+            a[2]=axis[2]
+
+            rotate_particle(self.id,a,angle)
 
 cdef class _ParticleSliceImpl(object):
     """Handles slice inputs.
@@ -1671,7 +1716,10 @@ class ParticleSlice(_ParticleSliceImpl):
 
     """
 
-    pass
+    def __setattr__(self, name, value):
+        if name != "_chunk_size" and not hasattr(ParticleHandle, name):
+            raise AttributeError("ParticleHandle does not have the attribute {}.".format(name))
+        super(ParticleSlice, self).__setattr__(name, value)
 
 
 cdef class ParticleList(object):
@@ -1712,7 +1760,7 @@ cdef class ParticleList(object):
         """
 
         pickle_attr = copy(particle_attributes)
-        for i in ["director", "dip", "id"]:
+        for i in ["director", "dip", "id", "image_box", "node"]:
             if i in pickle_attr:
                 pickle_attr.remove(i)
         IF MASS == 0:
@@ -1750,7 +1798,7 @@ cdef class ParticleList(object):
 
         See Also
         --------
-        remove
+        :meth:`espressomd.particle_data.ParticleHandle.remove`
 
         Examples
         --------
@@ -1875,7 +1923,7 @@ Set quat and scalar dipole moment (dipm) instead.")
         See Also
         --------
         add
-        remove
+        :meth:`espressomd.particle_data.ParticleHandle.remove`
 
         """
 

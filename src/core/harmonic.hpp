@@ -105,7 +105,7 @@ inline int harmonic_pair_energy(Particle *p1, Particle *p2, Bonded_ia_parameters
       if (! iaparams->p.harmonic.breakable) return 1;
       else return 0;
 
-  *_energy = 0.5*iaparams->p.harmonic.k*SQR(dist - iaparams->p.harmonic.r);
+  *_energy = 0.5*iaparams->p.harmonic.k*Utils::sqr(dist - iaparams->p.harmonic.r);
   return 0;
 }
 
