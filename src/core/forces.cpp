@@ -107,7 +107,7 @@ void force_calc() {
   // transfer_momentum_gpu check makes sure the LB fluid doesn't get updated on
   // integrate 0
   // this_node==0 makes sure it is the master node where the gpu exists
-  if (lattice_switch & LATTICE_LB_GPU && transfer_momentum_gpu &&
+  if (lattice_switch & LATTICE_LB_GPU &&
       (this_node == 0))
     lb_calc_particle_lattice_ia_gpu(thermo_virtual);
 #endif // LB_GPU

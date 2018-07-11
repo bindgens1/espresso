@@ -2878,7 +2878,7 @@ __global__ void integrate(LB_nodes_gpu n_a, LB_nodes_gpu n_b, LB_rho_v_gpu *d_v,
  * @param *fluid_composition Pointer to the local fluid composition for the Shanchen
  * @param *d_v               Pointer to local device values
 */
-__global__ void calc_fluid_particle_ia(LB_nodes_gpu n_a, CUDA_particle_data *particle_data, float *particle_force, CUDA_fluid_composition * fluid_composition, LB_node_force_density_gpu node_f, CUDA_particle_seed *part, LB_rho_v_gpu *d_v, bool couple_virtual){
+__global__ void calc_fluid_particle_ia(LB_nodes_gpu n_a, CUDA_particle_data *particle_data, float *particle_force, CUDA_fluid_composition * fluid_composition, LB_node_force_density_gpu node_f, CUDA_particle_seed *part, LB_rho_v_gpu *d_v, bool couple_virtual, bool add_force = true){
 
   unsigned int part_index = blockIdx.y * gridDim.x * blockDim.x + blockDim.x * blockIdx.x + threadIdx.x;
   unsigned int node_index[8];
@@ -2898,12 +2898,17 @@ __global__ void calc_fluid_particle_ia(LB_nodes_gpu n_a, CUDA_particle_data *par
 
       /**force acting on the particle. delta_j will be used later to compute the force that acts back onto the fluid. */
       calc_viscous_force(n_a, delta, partgrad1, partgrad2, partgrad3, particle_data, particle_force, fluid_composition,part_index, &rng_part, delta_j, node_index, d_v, 0);
-      calc_node_force(delta, delta_j, partgrad1, partgrad2, partgrad3, node_index, node_f); 
+      
+      if (add_force) {
+        calc_node_force(delta, delta_j, partgrad1, partgrad2, partgrad3, node_index, node_f); 
+      }
 
 #ifdef ENGINE
       if ( particle_data[part_index].swim.swimming ) {
         calc_viscous_force(n_a, delta, partgrad1, partgrad2, partgrad3, particle_data, particle_force, fluid_composition,part_index, &rng_part, delta_j, node_index, d_v, 1);
-        calc_node_force(delta, delta_j, partgrad1, partgrad2, partgrad3, node_index, node_f);
+        if (add_force) {  
+          calc_node_force(delta, delta_j, partgrad1, partgrad2, partgrad3, node_index, node_f);
+        }  
       }
 #endif
 
@@ -3353,6 +3358,15 @@ void lb_calc_particle_lattice_ia_gpu(bool couple_virtual){
     int blocks_per_grid_particles_y = 4;
     int blocks_per_grid_particles_x = (lbpar_gpu.number_of_particles + threads_per_block_particles * blocks_per_grid_particles_y - 1) / 
                                       (threads_per_block_particles * blocks_per_grid_particles_y);
+
+    if((not transfer_momentum_gpu) and (lbpar_gpu.lb_coupl_pref[0] > 0.)) {
+      runtimeWarning("Recalculating forces, so the LB coupling forces are not "
+                     "included in the particle force the first time step. This "
+                     "only matters if it happens frequently during "
+                     "sampling.\n");
+      return;
+    }
+    
     dim3 dim_grid_particles = make_uint3(blocks_per_grid_particles_x, blocks_per_grid_particles_y, 1);
 
     if ( lbpar_gpu.lb_couple_switch & LB_COUPLE_TWO_POINT )
@@ -3360,7 +3374,7 @@ void lb_calc_particle_lattice_ia_gpu(bool couple_virtual){
       KERNELCALL( calc_fluid_particle_ia, dim_grid_particles, threads_per_block_particles, 
                   ( *current_nodes, gpu_get_particle_pointer(), 
                     gpu_get_particle_force_pointer(), gpu_get_fluid_composition_pointer(),
-                    node_f, gpu_get_particle_seed_pointer(), device_rho_v, couple_virtual )
+                    node_f, gpu_get_particle_seed_pointer(), device_rho_v, couple_virtual, transfer_momentum_gpu)
                 );
     }
     else { /** only other option is the three point coupling scheme */
