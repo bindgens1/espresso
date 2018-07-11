@@ -2926,7 +2926,7 @@ __global__ void calc_fluid_particle_ia(LB_nodes_gpu n_a, CUDA_particle_data *par
  * @param node_f      Pointer to local node force (Input)
  * @param *d_v    Pointer to local device values
 */
-__global__ void calc_fluid_particle_ia_three_point_couple(LB_nodes_gpu n_a, CUDA_particle_data *particle_data, float *particle_force, LB_node_force_density_gpu node_f, CUDA_particle_seed *part, LB_rho_v_gpu *d_v){
+__global__ void calc_fluid_particle_ia_three_point_couple(LB_nodes_gpu n_a, CUDA_particle_data *particle_data, float *particle_force, LB_node_force_density_gpu node_f, CUDA_particle_seed *part, LB_rho_v_gpu *d_v, bool add_force = true){
 
   unsigned int part_index = blockIdx.y * gridDim.x * blockDim.x + blockDim.x * blockIdx.x + threadIdx.x;
   unsigned int node_index[27];
@@ -2938,12 +2938,16 @@ __global__ void calc_fluid_particle_ia_three_point_couple(LB_nodes_gpu n_a, CUDA
     rng_part.seed = part[part_index].seed;
     /**force acting on the particle. delta_j will be used later to compute the force that acts back onto the fluid. */
     calc_viscous_force_three_point_couple(n_a, delta, particle_data, particle_force, part_index, &rng_part, delta_j, node_index,d_v,0);
-    calc_node_force_three_point_couple(delta, delta_j, node_index, node_f);
+    if (add_force) {
+      calc_node_force_three_point_couple(delta, delta_j, node_index, node_f);
+    }
 
 #ifdef ENGINE
     if ( particle_data[part_index].swim.swimming ) {
       calc_viscous_force_three_point_couple(n_a, delta, particle_data, particle_force, part_index, &rng_part, delta_j, node_index,d_v,1);
-      calc_node_force_three_point_couple(delta, delta_j, node_index, node_f);
+      if (add_force) {
+        calc_node_force_three_point_couple(delta, delta_j, node_index, node_f);
+      }
     }
 #endif
 
@@ -3387,7 +3391,7 @@ void lb_calc_particle_lattice_ia_gpu(bool couple_virtual){
       KERNELCALL( calc_fluid_particle_ia_three_point_couple, dim_grid_particles, threads_per_block_particles,
                    ( *current_nodes, gpu_get_particle_pointer(),
                      gpu_get_particle_force_pointer(), node_f,
-                     gpu_get_particle_seed_pointer(), device_rho_v )
+                     gpu_get_particle_seed_pointer(), device_rho_v, transfer_momentum_gpu)
                 );
     }
   }
