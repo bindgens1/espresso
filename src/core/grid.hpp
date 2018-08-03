@@ -188,8 +188,10 @@ inline void get_mi_vector(T &res, U const &a, V const &b) {
 
     double dist = std::fabs(a[1] - b[1]);
     double le_shifts = 0.0;
+    double le_offset = 0.0; 
     if (dist > box_l[1]/2.)
       le_shifts = floor(dist / box_l[1]);
+    res[0] += le_shifts * le_offset; 
     //printf("Dist: %f, Shift: %f", dist, le_shifts);
   }
 }
