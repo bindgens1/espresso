@@ -176,9 +176,12 @@ void rescale_boxl(int dir, double d_new);
 /** get the minimal distance vector of two vectors in the current bc.
   *  @param a the vector to subtract from
   *  @param b the vector to subtract
+  *  @param c the image box of part 1
+  *  @param b the image box of part 2
   *  @param res where to store the result
 */
 
+//TODO delete
 template <typename T, typename U, typename V>
 inline void get_mi_vector(T &res, U const &a, V const &b) {
   for (int i = 0; i < 3; i++) {
@@ -188,10 +191,27 @@ inline void get_mi_vector(T &res, U const &a, V const &b) {
   }
 }
 
+//TODO delete
 template <typename T, typename U>
 Vector3d get_mi_vector(T const &a, U const &b) {
   Vector3d res;
   get_mi_vector(res, a, b);
+
+  return res;
+}
+template <typename T, typename U, typename V, typename W, typename X>
+inline void get_mi_vector(T &res, U const &a, V const &b, W const &c, X const &d) {
+  for (int i = 0; i < 3; i++) {
+    res[i] = a[i] - b[i];
+    if (std::fabs(res[i]) > half_box_l[i] && PERIODIC(i))
+      res[i] -= dround(res[i] * box_l_i[i]) * box_l[i];
+  }
+}
+
+template <typename T, typename U, typename W, typename X>
+Vector3d get_mi_vector(T const &a, U const &b, W const &c, X const &d) {
+  Vector3d res;
+  get_mi_vector(res, a, b, c, d);
 
   return res;
 }
