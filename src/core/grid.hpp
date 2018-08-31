@@ -195,10 +195,6 @@ inline void get_mi_vector(T &res, U const &a, V const &b) {
     res[i] -= dround(res[i] * box_l_i[i]) * box_l[i];
   
   if (std::abs(dy) > half_box_l[1]) {
-    //extern double sim_time;
-    //auto const shear_rate = 0.5;
-    //double const offset = sim_time * shear_rate;
-    //double const offset = 2.;
     
     auto offset = lees_edwards_protocol.offset;
     auto shift =
