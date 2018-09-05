@@ -188,12 +188,13 @@ inline void get_mi_vector(T &res, U const &a, V const &b) {
   for (int i = 0; i < 3; i++)
     res[i] = a[i] - b[i];
 
-#ifdef LEES_EDWARDS
-  if (PERIODIC(1)) {
     auto const dy = res[1];
-
+    
     for (int i = 0; i < 3; i++)
       res[i] -= dround(res[i] * box_l_i[i]) * box_l[i];
+
+#ifdef LEES_EDWARDS
+  if (PERIODIC(1)) {
     
     if (std::abs(dy) > half_box_l[1]) {
       
