@@ -189,17 +189,19 @@ inline void get_mi_vector(T &res, U const &a, V const &b) {
     res[i] = a[i] - b[i];
 
 #ifdef LEES_EDWARDS
-  auto const dy = res[1];
+  if (PERIODIC(1)) {
+    auto const dy = res[1];
 
-  for (int i = 0; i < 3; i++)
-    res[i] -= dround(res[i] * box_l_i[i]) * box_l[i];
-  
-  if (std::abs(dy) > half_box_l[1]) {
+    for (int i = 0; i < 3; i++)
+      res[i] -= dround(res[i] * box_l_i[i]) * box_l[i];
     
-    auto offset = lees_edwards_protocol.offset;
-    auto shift =
-        Utils::sgn(dy) * (offset - dround(offset * box_l_i[1]) * box_l[1]);
-    res[0] -= shift;
+    if (std::abs(dy) > half_box_l[1]) {
+      
+      auto offset = lees_edwards_protocol.offset;
+      auto shift =
+          Utils::sgn(dy) * (offset - dround(offset * box_l_i[1]) * box_l[1]);
+      res[0] -= shift;
+    }
   }
 #endif    
 }
