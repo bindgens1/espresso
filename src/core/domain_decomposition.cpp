@@ -438,7 +438,7 @@ void dd_assign_prefetches(GhostCommunicator *comm) {
  * algorithm (see verlet.cpp) to build the verlet lists.
  */
 void dd_init_cell_interactions() {
-  int m, n, o;
+  int m, n, o, p, q, r;
 
   std::array<int, 3> local_halo_origin;
   int global_size[3];
