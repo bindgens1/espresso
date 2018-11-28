@@ -525,8 +525,24 @@ void rescale_velocities(double scale) {
 void propagate_vel_finalize_p_inst() {
 
 #ifdef LEES_EDWARDS
-double le_vel = - lees_edwards_get_velocity(sim_time + time_step/2.0)
-                + lees_edwards_get_velocity(sim_time + time_step);
+double le_vel = - lees_edwards_get_velocity(sim_time + time_step/2.0) ;
+         //       + lees_edwards_get_velocity(sim_time + time_step);
+double tpdt = sim_time + time_step;
+double ttt = lees_edwards_get_velocity(sim_time + time_step);
+double inline_vel = 0.69999998807907104492 * 2.5 
+                    * std::cos(0.69999998807907104492*(10000));
+double inline_vel_cor = 0.7 * 2.5 
+                    * std::cos(0.7*(10000));
+
+printf("Vel from function %1.20f \n", inline_vel);
+printf("Vel from dir comp %1.20f \n", inline_vel_cor);
+printf("Vel after t + dt: %1.20f \n", ttt);
+printf("Time t: %f \n", sim_time);
+printf("Time step delta t: %1.20f \n", time_step);
+printf("Time plus delta t: %1.20f \n", tpdt);
+printf("LEES EDWARDS AMPL: %1.20f \n", lees_edwards_protocol.amplitude);
+printf("LEES EDWARDS FREQ: %1.20f \n", lees_edwards_protocol.frequency);
+
 #endif
 #ifdef NPT
   if (integ_switch == INTEG_METHOD_NPT_ISO) {
