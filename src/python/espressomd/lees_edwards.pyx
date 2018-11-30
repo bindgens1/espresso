@@ -3,10 +3,16 @@ from .utils import handle_errors, to_str
 
 from globals cimport *
 
-lees_edwards_type_dict = {'off': LEES_EDWARDS_PROTOCOL_OFF,
-                          'step': LEES_EDWARDS_PROTOCOL_STEP,
-                          'steady_shear': LEES_EDWARDS_PROTOCOL_STEADY_SHEAR,
-                          'oscillatory_shear': LEES_EDWARDS_PROTOCOL_OSC_SHEAR}
+#lees_edwards_type_dict = {'off': LEES_EDWARDS_PROTOCOL_OFF,
+#                          'step': LEES_EDWARDS_PROTOCOL_STEP,
+#                          'steady_shear': LEES_EDWARDS_PROTOCOL_STEADY_SHEAR,
+#                          'oscillatory_shear': LEES_EDWARDS_PROTOCOL_OSC_SHEAR}
+
+cdef extern from "lees_edwards.hpp":
+    const int LEES_EDWARDS_PROTOCOL_OFF
+    const int LEES_EDWARDS_PROTOCOL_STEP
+    const int LEES_EDWARDS_PROTOCOL_STEADY_SHEAR
+    const int LEES_EDWARDS_PROTOCOL_OSC_SHEAR
 
 
 @script_interface_register
@@ -107,7 +113,7 @@ class LeesEdwards(ScriptInterfaceHelper):
 
         kwargs['time0'] = sim_time
 
-        kwargs['type'] = lees_edwards_type_dict[kwargs['type']]
+        kwargs['type'] = self._int_type[kwargs['type']]
 
         super(type(self), self).set_params(**kwargs)
 
@@ -153,16 +159,23 @@ class LeesEdwards(ScriptInterfaceHelper):
             return ("type", "offset", "sheardir", "shearplanenormal")
         if type == "steady_shear":
             return ("type", "velocity", "sheardir", "shearplanenormal")
-        if type == "oscillatory":
+        if type == "oscillatory_shear":
             return ("type", "amplitude", "frequency", "sheardir", "shearplanenormal")
 
         raise Exception("Type not handled: " + type.__str__())
+
+    _int_type = {
+        "off": int(LEES_EDWARDS_PROTOCOL_OFF),
+        "step": int(LEES_EDWARDS_PROTOCOL_STEP),
+        "steady_shear": int(LEES_EDWARDS_PROTOCOL_STEADY_SHEAR),
+        "oscillatory_shear": int(LEES_EDWARDS_PROTOCOL_OSC_SHEAR)}
+
 
     def _str_type(self, int_type):
         """String type name from int ones provided by the core
 
         """
-        for key in lees_edwards_type_dict:
-            if lees_edwards_type_dict[key] == int_type:
+        for key in self._int_type:
+            if self._int_mode[key] == int_type:
                 return key
         raise Exception("Unknown integer Lees-Edwards protocol type %d" % int_type)

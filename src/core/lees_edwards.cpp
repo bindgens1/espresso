@@ -23,65 +23,65 @@
 #include "lees_edwards.hpp"
 #include "integrate.hpp"
 
-lees_edwards_protocol_struct lees_edwards_protocol = {LEES_EDWARDS_PROTOCOL_OFF, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 1};
-
 /* Functions to determine the current offset and shear rate with respect to the chosen protocol */
 
+LeesEdwards_parameters LeesEdwards_params;
+
 void setup_lees_edwards_protocol() {
-  if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_OFF) {
-    lees_edwards_protocol.offset = 0.0;
-    lees_edwards_protocol.velocity = 0.0;
-    lees_edwards_protocol.amplitude = 0.0;
-    lees_edwards_protocol.frequency = 0.0;
+  if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_OFF) {
+    LeesEdwards_params.offset = 0.0;
+    LeesEdwards_params.velocity = 0.0;
+    LeesEdwards_params.amplitude = 0.0;
+    LeesEdwards_params.frequency = 0.0;
   } 
 
 
-  else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_STEP) {
-    lees_edwards_protocol.velocity = 0.0;
-    lees_edwards_protocol.amplitude = 0.0;
-    lees_edwards_protocol.frequency = 0.0;
+  else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_STEP) {
+    LeesEdwards_params.velocity = 0.0;
+    LeesEdwards_params.amplitude = 0.0;
+    LeesEdwards_params.frequency = 0.0;
   } 
 
-  else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_STEADY_SHEAR) {
-    lees_edwards_protocol.offset = lees_edwards_get_offset(sim_time);
-    lees_edwards_protocol.amplitude = 0.0;
-    lees_edwards_protocol.frequency = 0.0;
+  else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_STEADY_SHEAR) {
+    LeesEdwards_params.offset = lees_edwards_get_offset(sim_time);
+    LeesEdwards_params.amplitude = 0.0;
+    LeesEdwards_params.frequency = 0.0;
   } 
   
-  else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_OSC_SHEAR) {
-    lees_edwards_protocol.offset = lees_edwards_get_offset(sim_time);
-    lees_edwards_protocol.velocity = lees_edwards_get_velocity(sim_time);
+  else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_OSC_SHEAR) {
+    LeesEdwards_params.offset = lees_edwards_get_offset(sim_time);
+    LeesEdwards_params.velocity = lees_edwards_get_velocity(sim_time);
   }
   else {
-    lees_edwards_protocol.offset = 0.0;
-    lees_edwards_protocol.velocity = 0.0;
+    LeesEdwards_params.offset = 0.0;
+    LeesEdwards_params.velocity = 0.0;
   }
 }
 
 double lees_edwards_get_offset(double time) {
 
-  if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_OFF) {
+  if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_OFF) {
     return 0.;
-  } else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_STEP) {
-    return lees_edwards_protocol.offset;
-  } else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_STEADY_SHEAR) {
-    return lees_edwards_protocol.velocity * (time-lees_edwards_protocol.time0);
-  } else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_OSC_SHEAR) {
-    return lees_edwards_protocol.amplitude * std::sin(lees_edwards_protocol.frequency*(time-lees_edwards_protocol.time0));
+  } else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_STEP) {
+    return LeesEdwards_params.offset;
+  } else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_STEADY_SHEAR) {
+    return LeesEdwards_params.velocity * (time-LeesEdwards_params.time0);
+  } else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_OSC_SHEAR) {
+    return LeesEdwards_params.amplitude * std::sin(LeesEdwards_params.frequency*(time-LeesEdwards_params.time0));
   } else {
     return 0.0;
   }  
 }
 
 double lees_edwards_get_velocity(double time) {
-  if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_OFF) {
+  if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_OFF) {
     return 0.;
-  } else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_STEP) {
+  } else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_STEP) {
     return 0.;
-  } else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_STEADY_SHEAR) {
-    return lees_edwards_protocol.velocity;
-  } else if (lees_edwards_protocol.type == LEES_EDWARDS_PROTOCOL_OSC_SHEAR) {
-    return lees_edwards_protocol.frequency * lees_edwards_protocol.amplitude * std::cos(lees_edwards_protocol.frequency*(time-lees_edwards_protocol.time0));
+  } else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_STEADY_SHEAR) {
+    return LeesEdwards_params.velocity;
+  } else if (LeesEdwards_params.type == LEES_EDWARDS_PROTOCOL_OSC_SHEAR) {
+    return LeesEdwards_params.frequency * LeesEdwards_params.amplitude * std::cos(LeesEdwards_params.frequency*(time-LeesEdwards_params.time0));
   } else {
     return 0.0;
   }  

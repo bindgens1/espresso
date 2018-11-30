@@ -1,4 +1,6 @@
 
+
+
 #include "../ScriptInterfaceBase.hpp"
 #include "core/lees_edwards.hpp"
 
@@ -11,14 +13,14 @@ class LeesEdwards : public AutoParameters<LeesEdwards> {
 public:
   LeesEdwards() {
     add_parameters(
-	{{"type", lees_edwards_protocol.type},
-	 {"time0", lees_edwards_protocol.time0},
-     {"offset", lees_edwards_protocol.offset},
-     {"velocity", lees_edwards_protocol.velocity},
-     {"amplitude", lees_edwards_protocol.amplitude},
-     {"frequency", lees_edwards_protocol.frequency},
-     {"sheardir", lees_edwards_protocol.sheardir},
-     {"shearplanenormal", lees_edwards_protocol.shearplanenormal}});
+	{{"type", LeesEdwards_params.type},
+	 {"time0", LeesEdwards_params.time0},
+     {"offset", LeesEdwards_params.offset},
+     {"velocity", LeesEdwards_params.velocity},
+     {"amplitude", LeesEdwards_params.amplitude},
+     {"frequency", LeesEdwards_params.frequency},
+     {"sheardir", LeesEdwards_params.sheardir},
+     {"shearplanenormal", LeesEdwards_params.shearplanenormal}});
   };
 
 }; // Class LeesEdwards

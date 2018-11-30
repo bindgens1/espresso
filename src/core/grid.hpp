@@ -192,18 +192,18 @@ inline void get_mi_vector(T &res, U const &a, V const &b) {
     res[i] = a[i] - b[i];
 
 #ifdef LEES_EDWARDS
-  double const dy = res[lees_edwards_protocol.shearplanenormal];
+  double const dy = res[LeesEdwards_params.shearplanenormal];
 #endif
 
 #ifdef LEES_EDWARDS
-  if (std::abs(dy) > half_box_l[lees_edwards_protocol.shearplanenormal]) {
+  if (std::abs(dy) > half_box_l[LeesEdwards_params.shearplanenormal]) {
 
-    double offset = lees_edwards_protocol.offset;
+    double offset = LeesEdwards_params.offset;
     double shift =
         Utils::sgn(dy) *
-        (offset - dround(offset * box_l_i[lees_edwards_protocol.sheardir]) *
-                      box_l[lees_edwards_protocol.sheardir]);
-        res[lees_edwards_protocol.sheardir] -= shift;
+        (offset - dround(offset * box_l_i[LeesEdwards_params.sheardir]) *
+                      box_l[LeesEdwards_params.sheardir]);
+        res[LeesEdwards_params.sheardir] -= shift;
     }
 #endif
 
@@ -354,11 +354,11 @@ inline static Vector3d vel_diff(Vector3d const &x, Vector3d const &y,
   auto ret = u - v;
 
 #ifdef LEES_EDWARDS
-  auto shear_velocity = lees_edwards_protocol.velocity;
-  auto const dy = std::abs(x[lees_edwards_protocol.shearplanenormal] -
-                           y[lees_edwards_protocol.shearplanenormal]);
-  if (dy > 0.5 * box_l[lees_edwards_protocol.shearplanenormal]) {
-    ret[lees_edwards_protocol.sheardir] += Utils::sgn(dy) * shear_velocity;
+  auto shear_velocity = LeesEdwards_params.velocity;
+  auto const dy = std::abs(x[LeesEdwards_params.shearplanenormal] -
+                           y[LeesEdwards_params.shearplanenormal]);
+  if (dy > 0.5 * box_l[LeesEdwards_params.shearplanenormal]) {
+    ret[LeesEdwards_params.sheardir] += Utils::sgn(dy) * shear_velocity;
   }
 #endif
 

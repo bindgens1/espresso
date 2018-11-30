@@ -1,46 +1,42 @@
-#ifndef LEES_EDWARDS_H
-#define LEES_EDWARDS_H
+#ifndef _LEES_EDWARDS_H
+#define _LEES_EDWARDS_H
 
-#include "config.hpp"
-
-/** \file lees_erdwards.hpp
+/** \file lees_edwards.hpp
 *
 */
 
-/** Enum for the different Lees Edwards Protocols: Off, Step. Steady Shear and Oscillatory shear  */
-enum LeesEdwardsProtocolType {
-    LEES_EDWARDS_PROTOCOL_OFF,
-    LEES_EDWARDS_PROTOCOL_STEP,
-    LEES_EDWARDS_PROTOCOL_STEADY_SHEAR,
-    LEES_EDWARDS_PROTOCOL_OSC_SHEAR,
+#define LEES_EDWARDS_PROTOCOL_OFF 0
+#define LEES_EDWARDS_PROTOCOL_STEP 2
+#define LEES_EDWARDS_PROTOCOL_STEADY_SHEAR 4
+#define LEES_EDWARDS_PROTOCOL_OSC_SHEAR 8
+
+#include "config.hpp"
+
+class LeesEdwards_parameters {
+public:
+  LeesEdwards_parameters()
+      : type(LEES_EDWARDS_PROTOCOL_OFF), offset(0.), velocity(0.), amplitude(0.),
+        frequency(0.), time0(0.), sheardir(0), shearplanenormal(1) {};
+
+  int type;
+  double offset;
+  double velocity;
+  double amplitude;
+  double frequency;
+  double time0;
+  int sheardir;
+  int shearplanenormal;
 };
 
-/** Struct holding all information concerning Lees Edwards  */
-typedef struct {
-/** Protocol type*/
-  int type;
-/** Time when Lees Edwards was started*/
-  double time0;
-/** Current offset*/
-  double offset;
-/** Current velocity*/
-  double velocity;
-/** Amplitude set via interface*/
-  double amplitude;
-/** Frequency set via interface*/
-  double frequency;
-/** Direction in which the velocity and position jump is applied*/
-  int sheardir;
-/** Direction in which get_mi_vector needs to be modified*/
-  int shearplanenormal; 
-} lees_edwards_protocol_struct;
+extern LeesEdwards_parameters LeesEdwards_params;
 
-extern lees_edwards_protocol_struct lees_edwards_protocol;
-/** Function to determine the current offset / velocity depending on the protocol */
+#ifdef LEES_EDWARDS
+
 void setup_lees_edwards_protocol();
-/** Calculation of current offset*/
+///** Calculation of current offset*/
 double lees_edwards_get_offset(double time);
-/** Calculation of current velocity*/
+///** Calculation of current velocity*/
 double lees_edwards_get_velocity(double time);
 
+#endif
 #endif

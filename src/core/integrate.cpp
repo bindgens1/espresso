@@ -540,8 +540,8 @@ printf("Vel after t + dt: %1.20f \n", ttt);
 printf("Time t: %f \n", sim_time);
 printf("Time step delta t: %1.20f \n", time_step);
 printf("Time plus delta t: %1.20f \n", tpdt);
-printf("LEES EDWARDS AMPL: %1.20f \n", lees_edwards_protocol.amplitude);
-printf("LEES EDWARDS FREQ: %1.20f \n", lees_edwards_protocol.frequency);
+printf("LEES EDWARDS AMPL: %1.20f \n", LeesEdwards_params.amplitude);
+printf("LEES EDWARDS FREQ: %1.20f \n", LeesEdwards_params.frequency);
 
 #endif
 #ifdef NPT
@@ -577,8 +577,8 @@ printf("LEES EDWARDS FREQ: %1.20f \n", lees_edwards_protocol.frequency);
           /* Propagate velocity: v(t+dt) = v(t+0.5*dt) + 0.5*dt * a(t+dt) */
           p.m.v[j] += 0.5 * time_step * p.f.f[j] / p.p.mass;
 #ifdef LEES_EDWARDS
-        if (j == lees_edwards_protocol.sheardir && p.p.lees_edwards_flag != 0) {
-          p.m.v[lees_edwards_protocol.sheardir] += p.p.lees_edwards_flag *
+        if (j == LeesEdwards_params.sheardir && p.p.lees_edwards_flag != 0) {
+          p.m.v[LeesEdwards_params.sheardir] += p.p.lees_edwards_flag *
                       le_vel;
         }
 #endif
@@ -857,16 +857,16 @@ double offset_at_time_step =
       //
       // The update of the velocity at the end of the time step is triggered by
       // the flag and occurs in propagate_vel_finalize_p_inst
-      if (p.r.p[lees_edwards_protocol.shearplanenormal] >= box_l[lees_edwards_protocol.shearplanenormal]) {
-        p.m.v[lees_edwards_protocol.sheardir] -= shear_velocity;
-        p.r.p[lees_edwards_protocol.sheardir] -= (offset_at_time_step -
-                     dround(offset_at_time_step * box_l_i[lees_edwards_protocol.sheardir]) * box_l[lees_edwards_protocol.sheardir]);
+      if (p.r.p[LeesEdwards_params.shearplanenormal] >= box_l[LeesEdwards_params.shearplanenormal]) {
+        p.m.v[LeesEdwards_params.sheardir] -= shear_velocity;
+        p.r.p[LeesEdwards_params.sheardir] -= (offset_at_time_step -
+                     dround(offset_at_time_step * box_l_i[LeesEdwards_params.sheardir]) * box_l[LeesEdwards_params.sheardir]);
         p.p.lees_edwards_flag = -1; // perform a negative half velocity shift in
                                     // propagate_vel_finalize_p_inst
-      } else if (p.r.p[lees_edwards_protocol.shearplanenormal] <= 0.) {
-        p.m.v[lees_edwards_protocol.sheardir] += shear_velocity;
-        p.r.p[lees_edwards_protocol.sheardir] += (offset_at_time_step -
-                     dround(offset_at_time_step * box_l_i[lees_edwards_protocol.sheardir]) * box_l[lees_edwards_protocol.sheardir]);
+      } else if (p.r.p[LeesEdwards_params.shearplanenormal] <= 0.) {
+        p.m.v[LeesEdwards_params.sheardir] += shear_velocity;
+        p.r.p[LeesEdwards_params.sheardir] += (offset_at_time_step -
+                     dround(offset_at_time_step * box_l_i[LeesEdwards_params.sheardir]) * box_l[LeesEdwards_params.sheardir]);
         p.p.lees_edwards_flag = 1; // perform a positive half velocity shift in
                                    // propagate_vel_finalize_p_inst
       } else {
