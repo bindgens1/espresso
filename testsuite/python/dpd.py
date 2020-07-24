@@ -456,26 +456,36 @@ class DPDThermostat(ut.TestCase):
 
         pairs = s.part.pairs()
 
-        stress = np.zeros([3, 3])
+        for i in range(5):
+            print(i)
+            stress = np.zeros([3, 3])
 
-        for pair in pairs:
-            dist = s.distance_vec(pair[0], pair[1])
-            if np.linalg.norm(dist) < r_cut:
-                vel_diff = pair[1].v - pair[0].v
-                stress += calc_stress(dist, vel_diff)
+            pairs = s.part.pairs()
+            
+            for pair in pairs:
+                dist = s.distance_vec(pair[0], pair[1])
+                if np.linalg.norm(dist) < r_cut:
+                    vel_diff = pair[1].v - pair[0].v
+                    stress += calc_stress(dist, vel_diff)
 
-        stress /= s.box_l[0] ** 3.0
+            stress /= s.box_l[0] ** 3.0
+            print(stress)
 
-        dpd_stress = s.analysis.dpd_stress()
+            dpd_stress = s.analysis.dpd_stress()
+            print(dpd_stress)
 
-        dpd_obs = DPDStress()
-        obs_stress = dpd_obs.calculate()
-        obs_stress = np.array([[obs_stress[0], obs_stress[1], obs_stress[2]],
-                               [obs_stress[3], obs_stress[4], obs_stress[5]],
-                               [obs_stress[6], obs_stress[7], obs_stress[8]]])
+            dpd_obs = DPDStress()
+            obs_stress = dpd_obs.calculate()
+            obs_stress = np.array([[obs_stress[0], obs_stress[1], obs_stress[2]],
+                                   [obs_stress[3], obs_stress[4], obs_stress[5]],
+                                   [obs_stress[6], obs_stress[7], obs_stress[8]]])
+            print(obs_stress)
 
-        np.testing.assert_array_almost_equal(np.copy(dpd_stress), stress)
-        np.testing.assert_array_almost_equal(np.copy(obs_stress), stress)
+            np.testing.assert_array_almost_equal(np.copy(dpd_stress), stress)
+            np.testing.assert_array_almost_equal(np.copy(obs_stress), stress)
+            np.testing.assert_array_almost_equal(np.copy(dpd_stress), np.copy(obs_stress))
+                
+            s.integrator.run(10)
 
 if __name__ == "__main__":
     ut.main()
