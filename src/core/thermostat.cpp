@@ -209,11 +209,11 @@ void thermo_heat_up() {
   if (thermo_switch & THERMO_LANGEVIN) {
     langevin_heat_up();
   }
-#ifdef DPD
-  if (thermo_switch & THERMO_DPD) {
-    dpd_heat_up();
-  }
-#endif
+//#ifdef DPD
+//  if (thermo_switch & THERMO_DPD) {
+//    dpd_heat_up();
+//  }
+//#endif
   if (n_thermalized_bonds) {
     thermalized_bond_heat_up();
   }
@@ -228,11 +228,11 @@ void thermo_cool_down() {
   if (thermo_switch & THERMO_LANGEVIN) {
     langevin_cool_down();
   }
-#ifdef DPD
-  if (thermo_switch & THERMO_DPD) {
-    dpd_cool_down();
-  }
-#endif
+//#ifdef DPD
+//  if (thermo_switch & THERMO_DPD) {
+//    dpd_cool_down();
+//  }
+//#endif
   if (n_thermalized_bonds) {
     thermalized_bond_cool_down();
   }
