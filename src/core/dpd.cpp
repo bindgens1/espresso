@@ -213,8 +213,13 @@ static auto dpd_viscous_stress_local() {
         auto ia_params = get_ia_param(p1.p.type, p2.p.type);
         auto const dist = std::sqrt(d.dist2);
 
-        auto const f_r = dpd_pair_force(ia_params->dpd_radial, v21, dist, {});
-        auto const f_t = dpd_pair_force(ia_params->dpd_trans, v21, dist, {});
+        auto const noise_vec =
+            (ia_params->dpd_radial.pref > 0.0 || ia_params->dpd_trans.pref > 0.0)
+                ? dpd_noise(p1.p.identity, p2.p.identity)
+                : Vector3d{};
+
+        auto const f_r = dpd_pair_force(ia_params->dpd_radial, v21, dist, noise_vec);
+        auto const f_t = dpd_pair_force(ia_params->dpd_trans, v21, dist, noise_vec);
 
         /* Projection operator to radial direction */
         auto const P = tensor_product(d.vec21 / d.dist2, d.vec21);
