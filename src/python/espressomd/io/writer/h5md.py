@@ -20,7 +20,6 @@
 import sys
 
 from ...script_interface import PScriptInterface  # pylint: disable=import
-<<<<<<< HEAD
 from ...code_info import features
 
 if not 'H5MD' in features():
@@ -29,7 +28,6 @@ if not 'H5MD' in features():
         def __init__(self, *args, **kwargs):
             raise RuntimeError("H5md not available.")
 else:
-
     class H5md(object):
     
         """H5md file object.
@@ -77,7 +75,7 @@ else:
                          'write_lees_edwards_offset': 1 << 6}
             self.valid_params.append(self.what.keys())
             self.what_bin = 0
-            for i, j in iteritems(kwargs):
+            for i, j in kwargs.items():
                 if i in self.what.keys():
                     if isinstance(j, bool):
                         if j:
